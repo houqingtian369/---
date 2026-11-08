@@ -30,9 +30,9 @@
     ['食管癌风险下降', '约 10 年', 10 * YEAR, 10 * YEAR, 'long', '持续戒烟后，食管癌风险下降。', '这是一般人群的长期变化，不能据此判断个人是否患病。', 'CDC'],
     ['肾癌风险下降', '约 10 年', 10 * YEAR, 10 * YEAR, 'long', '持续戒烟后，肾癌风险下降。', '个人风险也受其他健康因素影响。', 'CDC'],
     ['肺癌额外风险降低', '约 10—15 年', 10 * YEAR, 15 * YEAR, 'long', '吸烟带来的肺癌额外风险约降低一半。', '额外风险下降不等于降至从未吸烟者水平，也不能代替适用的筛查。', 'CDC'],
-    ['冠心病风险进一步接近', '约 15 年', 15 * YEAR, 15 * YEAR, 'long', '冠心病风险接近不吸烟者水平。', '接近不等于完全相同；实际风险受个人健康状况影响。', 'CDC'],
-    ['口咽喉癌风险进一步接近', '约 20 年', 20 * YEAR, 20 * YEAR, 'long', '口腔、咽部和喉部癌症风险接近不吸烟者水平。', '这是比额外风险下降更长期的参考节点。', 'CDC'],
-    ['胰腺癌风险进一步接近', '约 20 年', 20 * YEAR, 20 * YEAR, 'long', '胰腺癌风险接近不吸烟者水平。', '时间进度仍然不等于个人身体恢复比例。', 'CDC'],
+    ['冠心病风险进一步下降', '约 15 年', 15 * YEAR, 15 * YEAR, 'long', '冠心病风险接近不吸烟者水平。', '接近不等于完全相同；实际风险受个人健康状况影响。', 'CDC'],
+    ['口咽喉癌风险进一步下降', '约 20 年', 20 * YEAR, 20 * YEAR, 'long', '口腔、咽部和喉部癌症风险接近不吸烟者水平。', '这是比额外风险下降更长期的参考节点。', 'CDC'],
+    ['胰腺癌风险下降', '约 20 年', 20 * YEAR, 20 * YEAR, 'long', '胰腺癌风险接近不吸烟者水平。', '时间进度仍然不等于个人身体恢复比例。', 'CDC'],
   ].map((row, index) => ({
     id: index + 1, title: row[0], time: row[1], start: row[2], end: row[3],
     group: row[4], description: row[5], detail: row[6], source: row[7],
@@ -43,12 +43,17 @@
     const count = (wins || []).reduce((sum, entry) => sum + (Number(entry.cigarettes) || 0), 0);
     return (count * Number(packPrice) / Number(packCount)).toFixed(2);
   };
-  const timedSavings = (elapsedMs, cigarettesPerDay, packPrice, packCount = 20) => {
+  const timedSavings = (elapsedMs, cigarettesPerDay, packPrice, packCount = 20, smokedCigarettes = 0) => {
     if (!Number.isFinite(Number(cigarettesPerDay)) || Number(cigarettesPerDay) <= 0 || !Number.isFinite(Number(packPrice)) || Number(packPrice) <= 0 || !Number.isInteger(Number(packCount)) || Number(packCount) <= 0) return null;
-    return (Math.max(0, elapsedMs) / 86400000 * Number(cigarettesPerDay) * Number(packPrice) / Number(packCount)).toFixed(3);
+    return (Math.max(0, Math.max(0, elapsedMs) / 86400000 * Number(cigarettesPerDay) - smokedCigarettes) * Number(packPrice) / Number(packCount)).toFixed(3);
+  };
+  const timedSavingsCentProgress = (elapsedMs, cigarettesPerDay, packPrice, packCount = 20, smokedCigarettes = 0) => {
+    if (!Number.isFinite(Number(cigarettesPerDay)) || Number(cigarettesPerDay) <= 0 || !Number.isFinite(Number(packPrice)) || Number(packPrice) <= 0 || !Number.isInteger(Number(packCount)) || Number(packCount) <= 0) return 0;
+    const cents = Math.max(0, Math.max(0, elapsedMs) / 86400000 * Number(cigarettesPerDay) - smokedCigarettes) * Number(packPrice) / Number(packCount) * 100;
+    return cents % 1;
   };
   const timePercent = (hours, end) => hours >= end ? '100.00' : Math.min(99.99, Math.max(0, hours) / end * 100).toFixed(2);
-  const api = { milestones, sources, savedAmount, timedSavings, timePercent };
+  const api = { milestones, sources, savedAmount, timedSavings, timedSavingsCentProgress, timePercent };
   root.HealthMilestones = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
