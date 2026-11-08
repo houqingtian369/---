@@ -59,6 +59,7 @@ test('首次进入选择正在戒烟时可填写过去日期，注册时间与�
   for (const name of Object.keys(fields)) {
     assert.match(app.innerHTML, new RegExp(`name="${name}"`));
   }
+  assert.doesNotMatch(app.innerHTML, /name="nickname"/);
   assert.match(app.innerHTML, /准备戒烟，从现在开始/);
   assert.match(app.innerHTML, /正在戒烟的路上，现在继续打卡记录/);
   assert.match(app.innerHTML, /有戒烟打算，选择一个好日子开始计划/);
@@ -77,6 +78,7 @@ test('首次进入选择正在戒烟时可填写过去日期，注册时间与�
   assert.equal(saved.packCount, 19);
   assert.equal(saved.savingsGoalName, '一辆自行车');
   assert.equal(saved.savingsGoal, 1299);
+  assert.equal(saved.nickname, undefined);
   assert.match(app.innerHTML, /主导航/);
 });
 
@@ -107,7 +109,7 @@ test('未来计划只能选择明天及以后，今天不能提交', () => {
   submit();
   assert.equal(saved().startMode, 'planned');
   assert.equal(saved().currentStartAt, new Date('2026-11-08T08:30:00').toISOString());
-  assert.match(app.innerHTML, /计划准备中/);
+  assert.doesNotMatch(app.innerHTML, /class="home-status"/);
   assert.match(app.innerHTML, /id="home-timed-savings-value"[^>]*>¥0\.000/);
 });
 

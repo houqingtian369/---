@@ -6,13 +6,10 @@
   const BACKGROUNDS = {
     blue: { label: '晴空蓝', description: '清爽明亮', color: '#e7eef8', surface: '#e4edf8', soft: '#d5e5f5', strong: '#c9dcf0' },
     mist: { label: '晨雾灰', description: '安静中性', color: '#edf2f3', surface: '#f6f9fa', soft: '#e0eaed', strong: '#d2e1e5' },
-    sea: { label: '海盐青', description: '清透柔和', color: '#e7f2f3', surface: '#f3f9f9', soft: '#d8e9eb', strong: '#c9e0e3' },
     mint: { label: '薄荷绿', description: '清新舒展', color: '#e7f3f0', surface: '#f2faf7', soft: '#d9ebe6', strong: '#cbe2dc' },
     sage: { label: '鼠尾草', description: '自然沉静', color: '#e8f0e9', surface: '#f3f8f2', soft: '#dceadd', strong: '#cfe2d2' },
-    green: { label: '嫩芽绿', description: '温柔生长', color: '#e8ecd8', surface: '#f3f5e9', soft: '#e2ead3', strong: '#d6e3c8' },
     cream: { label: '奶油白', description: '柔亮百搭', color: '#f8f4e9', surface: '#fffaf1', soft: '#f3ecd8', strong: '#ece2ca' },
     warm: { label: '燕麦暖', description: '暖而安定', color: '#f3eadc', surface: '#faf4e9', soft: '#f1e2d0', strong: '#e9d9c5' },
-    sand: { label: '浅沙米', description: '平和素雅', color: '#f4efe6', surface: '#fbf7ef', soft: '#eee5d8', strong: '#e7dac9' },
     peach: { label: '杏桃粉', description: '轻暖活力', color: '#faeee8', surface: '#fff7f2', soft: '#f6e3d8', strong: '#efd6c8' },
     blush: { label: '樱雾粉', description: '柔软轻盈', color: '#f8edf1', surface: '#fff7f9', soft: '#f2dfe8', strong: '#e9d1dd' },
     lavender: { label: '淡雾紫', description: '舒缓静谧', color: '#eee8f5', surface: '#f7f2fb', soft: '#e9e0f2', strong: '#dfd4eb' },
@@ -51,6 +48,7 @@
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; }
   };
   let state = load();
+  if (state) state.pageBackground = { sea: 'mint', green: 'sage', sand: 'warm' }[state.pageBackground] || state.pageBackground;
   if (state && !Array.isArray(state.urgeWins)) state.urgeWins = [];
   let currentPage = 'home';
   let timerHandle = null;
@@ -63,6 +61,7 @@
   let healthFilter = 'all';
 
   const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const nickname = () => typeof state?.nickname === 'string' ? state.nickname.trim() : '';
   const recordVisit = () => {
     if (!state) return;
     const now = Date.now();
@@ -74,7 +73,7 @@
     save();
   };
   const applyPageBackground = (key = state?.pageBackground) => {
-    const choice = BACKGROUNDS[key] || BACKGROUNDS.blue;
+    const choice = BACKGROUNDS[key] || BACKGROUNDS.midnight;
     if (document.documentElement.dataset) document.documentElement.dataset.themeTone = choice.tone || 'light';
     document.documentElement.style.setProperty('--paper', choice.color);
     document.documentElement.style.setProperty('--white', choice.surface);
@@ -103,18 +102,18 @@
     }
   };
   const ENCOURAGEMENTS = [
-    '你刚刚为自己守住了这一刻。',
-    '这一次忍住，值得认真记下来。',
-    '想抽的时候停住脚步，你做到了。',
-    '每一次选择，都在帮你走得更远。',
-    '今天的你，又为自己多争取了一点自由。',
-    '烟瘾来了又走，你把决定权留给了自己。',
-    '这一步不容易，感谢你坚持了下来。',
-    '你不需要完美，这一次已经很棒。',
-    '把这次成功收好，下一次也能想起它。',
-    '你刚刚证明自己可以跨过这一阵。',
-    '给自己的这份照顾，值得一朵小红花。',
-    '慢慢来，你已经走过了刚才最难的一步。',
+    '你刚刚为自己守住了这一刻',
+    '这一次忍住，值得认真记下来',
+    '想抽的时候停住脚步，你做到了',
+    '每一次选择，都在帮你走得更远',
+    '今天的你，又为自己多争取了一点自由',
+    '烟瘾来了又走，你把决定权留给了自己',
+    '这一步不容易，感谢你坚持了下来',
+    '你不需要完美，这一次已经很棒',
+    '把这次成功收好，下一次也能想起它',
+    '你刚刚证明自己可以跨过这一阵',
+    '给自己的这份照顾，值得一朵小红花',
+    '慢慢来，你已经走过了刚才最难的一步',
   ];
   if (state && !state.checkinRuleVersion) {
     retireUnfinishedCheckins(checkinAnchor());
@@ -166,6 +165,7 @@
     }, 0);
   };
   const smokeFreeSavings = () => timedSavings(recognizedQuitMs(), state?.cigarettesPerDay, state?.packPrice, state?.packCount || 20, smokedCigarettesSinceQuit());
+  const goalSavedAmount = (total = smokeFreeSavings()) => total === null ? null : Math.max(0, Number(total) - (Number(state.savingsGoalStartAmount) || 0)).toFixed(3);
   const moneyRingDash = () => `${(timedSavingsCentProgress(recognizedQuitMs(), state?.cigarettesPerDay, state?.packPrice, state?.packCount || 20, smokedCigarettesSinceQuit()) * 503).toFixed(2)} 503`;
   const estimatedAvoidedCigarettes = () => {
     if (!state?.cigarettesPerDay) return null;
@@ -197,8 +197,8 @@
   const brand = () => `<div class="brand"><span class="brand-mark">${icon('leaf', 22)}</span><span>松口气</span></div>`;
   const ruleDisclosure = (content, label = '计算说明') => `<details class="rule-disclosure"><summary>${label}</summary><p>${content}</p></details>`;
   const startRule = () => {
-    const mode = state.startMode === 'continuing' ? 'B：从你填写的过去日期和时间起算，注册前未记录的时间按无烟估算。' : state.startMode === 'planned' ? 'C：从你选定的未来日期和时间起算，开始前均为 0。' : 'A：从提交计划的当下起算。';
-    return `${mode}累计计入时间＝从开始至今的时间－超过 3 天未打开后尚未补确认的空白时间；每满 24 小时计 1 天。`;
+    const mode = state.startMode === 'continuing' ? 'B：从你填写的过去日期和时间起算，注册前未记录的时间按无烟估算' : state.startMode === 'planned' ? 'C：从你选定的未来日期和时间起算，开始前均为 0' : 'A：从提交计划的当下起算';
+    return `${mode}。累计计入时间＝从开始至今的时间－超过 3 天未打开后尚未补确认的空白时间；每满 24 小时计 1 天`;
   };
 
   const clearFieldError = (input) => {
@@ -225,18 +225,18 @@
     app.innerHTML = `<section class="onboarding-wrap"><form class="onboarding" id="start-form">
       ${brand()}
       <p class="eyebrow">A SMALL STEP, A NEW BREATH</p>
-      <h1>想戒烟，先找到<br>适合自己的起点。</h1>
-      <p class="subtitle">选择现在开始、继续已有的坚持，或为将来定一个开始的日子。</p>
+      <h1>想戒烟，先找到<br>适合自己的起点</h1>
+      <p class="subtitle">选择现在开始、继续已有的坚持，或为将来定一个开始的日子</p>
       <div class="onboarding-section-title">01 · 戒烟从这里开始</div>
       <fieldset class="start-mode-options"><legend class="sr-only">选择开始方式</legend>
         <label class="start-mode-option"><input type="radio" name="startMode" value="now" checked required /><span><strong>A · 准备戒烟，从现在开始</strong><small>今天开始，自动记录此刻的时间</small></span></label>
         <label class="start-mode-option"><input type="radio" name="startMode" value="continuing" required /><span><strong>B · 正在戒烟的路上，现在继续打卡记录</strong><small>选择今天以前的开始日期</small></span></label>
         <label class="start-mode-option"><input type="radio" name="startMode" value="planned" required /><span><strong>C · 有戒烟打算，选择一个好日子开始计划</strong><small>选择明天或之后的日期</small></span></label>
       </fieldset>
-      <p class="form-help" id="start-mode-help">从此刻开始，时间自动记录。</p>
+      <p class="form-help" id="start-mode-help">从此刻开始，时间自动记录</p>
       <div class="onboarding-field-grid"><label class="form-field"><span>戒烟开始日期</span><div class="input-wrap">${icon('calendar', 17)}<input id="start-date" name="startDate" type="date" required value="${todayKey()}" /></div></label>
       <label class="form-field"><span>开始时间</span><div class="input-wrap">${icon('clock', 17)}<input id="start-time" name="startTime" type="time" step="1" required value="${timeInputValue()}" /></div></label></div>
-      <p class="form-help">每满 24 小时可确认一次无烟日，时间精确到秒。</p>
+      <p class="form-help">每满 24 小时可确认一次无烟日，时间精确到秒</p>
       <div class="onboarding-section-title">02 · 以前的吸烟习惯</div>
       <label class="form-field"><span>平均每天抽几支</span><div class="input-wrap"><input name="cigarettesPerDay" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="比如 10" required /><em>支 / 天</em></div></label>
       <div class="onboarding-field-grid"><label class="form-field"><span>每包多少钱</span><div class="input-wrap"><input name="packPrice" type="number" min="0.01" max="1000" step="0.01" inputmode="decimal" placeholder="比如 20" required /><em>元 / 包</em></div></label>
@@ -262,7 +262,7 @@
       if (mode === 'now') { startDateInput.value = today; startTimeInput.value = timeInputValue(now); }
       else if (mode === 'continuing' && (!startDateInput.value || startDateInput.value >= today)) startDateInput.value = yesterday;
       else if (mode === 'planned' && (!startDateInput.value || startDateInput.value <= today)) startDateInput.value = tomorrow;
-      app.querySelector('#start-mode-help').textContent = mode === 'now' ? '从此刻开始，时间自动记录。' : mode === 'continuing' ? '选择今天以前的日期；此前未记录的时间按无烟时间估算。' : '选择明天或之后的日期；到开始时间前不会累计进度。';
+      app.querySelector('#start-mode-help').textContent = mode === 'now' ? '从此刻开始，时间自动记录' : mode === 'continuing' ? '选择今天以前的日期；此前未记录的时间按无烟时间估算' : '选择明天或之后的日期；到开始时间前不会累计进度';
     };
     startModeInputs.forEach((input) => input.addEventListener('change', updateStartMode));
     updateStartMode();
@@ -320,7 +320,7 @@
     <button class="nav-button ${currentPage === 'buddy' ? 'active' : ''}" data-page="buddy" ${currentPage === 'buddy' ? 'aria-current="page"' : ''}>${icon('people')}<span>找搭子</span></button>
     <button class="nav-button ${currentPage === 'settings' ? 'active' : ''}" data-page="settings" ${currentPage === 'settings' ? 'aria-current="page"' : ''}>${icon('settings')}<span>设置</span></button>
   </nav>`;
-  const topbar = () => `<header class="topbar">${brand()}<span class="top-pill">${icon('spark', 15)} 每一步都算数</span></header>`;
+  const topbar = () => `<header class="topbar">${brand()}<span class="top-pill">${icon('spark', 15)}<span class="top-pill-text">${nickname() ? `${escapeHtml(nickname())} · ` : ''}每一步都算数</span></span></header>`;
 
   const monthCalendar = () => {
     const today = new Date();
@@ -380,14 +380,14 @@
     const urgeWins = todayUrgeWins();
     const avoidedToday = todayAvoidedCigarettes();
     app.innerHTML = `${topbar()}<section class="page home-page" aria-label="今日戒烟陪伴">
-      <div class="page-heading home-heading"><div><p class="eyebrow">ONE DAY AT A TIME</p><h1>${started ? '今天，慢慢来。' : '准备好，新的开始。'}</h1><p class="subtitle">${dateLabel(todayKey())} · 一天一天来</p></div><span class="home-status">${icon(pendingPeriods.length ? 'check' : 'leaf', 14)} ${!started ? '计划准备中' : pendingPeriods.length ? `${pendingPeriods.length} 期待确认` : cycle.status === 'smoked' ? '已记录，继续坚持' : '24 小时目标进行中'}</span></div>
+      <div class="page-heading home-heading"><div><p class="eyebrow">ONE DAY AT A TIME</p><h1>${nickname() ? `${escapeHtml(nickname())}，${started ? '今天慢慢来' : '准备好，新的开始'}` : started ? '今天，慢慢来' : '准备好，新的开始'}</h1><p class="subtitle">${dateLabel(todayKey())} · 一天一天来</p></div></div>
       <div class="home-flow">
-        ${hasUnverifiedGap ? `<aside class="gap-notice" role="status"><strong>有一段时间尚未确认</strong><span>超过 3 天未打开的空白期不计入累计；${pendingPeriods.length ? `最近有 ${pendingPeriods.length} 期可补确认。` : '目前没有可补日期。'}</span>${pendingPeriods.length ? '<a href="#daily-title">查看可补日期</a>' : ''}</aside>` : ''}
+        ${hasUnverifiedGap ? `<aside class="gap-notice" role="status"><strong>有一段时间尚未确认</strong><span>超过 3 天未打开的空白期不计入累计；${pendingPeriods.length ? `最近有 ${pendingPeriods.length} 期可补确认` : '目前没有可补日期'}</span>${pendingPeriods.length ? '<a href="#daily-title">查看可补日期</a>' : ''}</aside>` : ''}
         <section class="home-section" aria-labelledby="progress-title"><div class="home-section-heading"><span class="home-section-index">01</span><div><h2 id="progress-title">我的戒烟进度</h2><p>先看看现在走到了哪里</p></div></div>
           <div class="home-progress"><div class="home-progress-top"><span class="home-plan">${state.planType === 'reduce-to-quit' ? '逐步减量计划' : '我的戒烟计划'}</span></div>
             <div class="home-rank" aria-label="我的称号进度"><div class="home-rank-current"><span>${rankRoutes[rankRoute].label} · 当前称号</span><strong>${rank.current.label}</strong></div><div class="home-rank-next"><span>下一步</span><strong>${rank.next ? rank.next.label : '已到达最高称号'}</strong><small>${rank.next ? `还需 ${rank.remainingDays} 个累计无烟日` : '继续记录每个无烟日子'}</small></div></div>
             <div class="home-progress-main"><div class="home-progress-stats"><div class="home-metric"><span id="home-quit-label">${quitStartTime() > Date.now() ? '戒烟尚未开始' : quitDay === 0 ? '戒烟' : '戒烟第'}</span><div><strong id="home-smoke-free-days">${quitDay}</strong><em>天</em></div><span class="home-quit-time" id="home-quit-time" aria-live="off">${quitElapsedTime()}</span><small>${historicalEstimate ? '含注册前历史估算；' : '从戒烟开始累计已记录时间，'}满 24 小时计 1 天</small></div><div class="home-metric"><span>累计戒掉</span><div><strong id="home-avoided-cigarettes">${avoided === null ? '—' : avoided}</strong><em>根</em></div><small>${avoided === null ? '填写日均烟量后显示' : `按原先每天 ${state.cigarettesPerDay} 根估算`}</small></div></div><div class="money-orbit home-money-orbit" aria-label="节省金钱实时预估"><svg class="home-progress-ring" viewBox="0 0 180 180" aria-hidden="true"><circle id="home-money-ring" cx="90" cy="90" r="80" stroke-dasharray="${moneyRingDash()}" /></svg><div class="money-orbit-core">${moneyBag()}<strong id="home-timed-savings-value" aria-live="off">${saved === null ? '—' : `¥${saved}`}</strong><span>累计节省 · 实时预估</span></div></div></div>
-            <div class="home-rule-row">${ruleDisclosure(startRule(), '戒烟天数怎么算')}${ruleDisclosure('累计戒掉支数＝已计入时间 ÷ 24 小时 × 原先日均支数－已记录吸烟支数，取整数且最低为 0。它是与以前习惯相比的估算，不等于逐根核实。', '戒掉支数怎么算')}${ruleDisclosure('节省金额＝（已计入时间 ÷ 24 小时 × 原先日均支数－已记录吸烟支数）× 每包价格 ÷ 每包支数，最低为 0。此前金额保留，未确认空白期暂停累计。', '节省金额怎么算')}</div>
+            <div class="home-rule-row">${ruleDisclosure(startRule(), '戒烟天数怎么算')}${ruleDisclosure('累计戒掉支数＝已计入时间 ÷ 24 小时 × 原先日均支数－已记录吸烟支数，取整数且最低为 0。它是与以前习惯相比的估算，不等于逐根核实', '戒掉支数怎么算')}${ruleDisclosure('节省金额＝（已计入时间 ÷ 24 小时 × 原先日均支数－已记录吸烟支数）× 每包价格 ÷ 每包支数，最低为 0。此前金额保留，未确认空白期暂停累计', '节省金额怎么算')}</div>
             <div class="home-clock">${icon('clock', 16)}<span>${started ? quitStarted ? '本次持续无烟' : '减量计划已进行' : '等待计划开始'}</span><strong id="live-counter" aria-live="off">${formatDuration(recognizedElapsedMs(new Date(lastSmokeTime()).getTime(), Date.now(), state.unverifiedGaps || []))}</strong></div>
             <div class="home-progress-footer"><span>从戒烟开始累计估算，扣除已记录吸烟与未确认空白期${hasUnverifiedGap ? '；最近 3 期可补确认' : ''}</span><button class="link-button" data-page="growth">查看完整成长记录 ${icon('arrow', 16)}</button></div>
           </div></section>
@@ -395,22 +395,22 @@
           <div class="home-daily"><div class="home-checkin"><div class="home-daily-label">24 小时无烟目标</div>
             <div class="cycle-summary"><strong id="cycle-title">${cycle.title}</strong><span><span id="cycle-detail">${cycle.detail}</span> <b id="cycle-remaining">${formatRemaining(cycle.remaining)}</b></span></div>
             <div class="cycle-track ${cycle.status}" id="cycle-track" role="progressbar" aria-label="24 小时目标时间进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.floor(cycle.percent)}" aria-valuetext="${cycle.title}，${cycle.detail} ${formatRemaining(cycle.remaining)}"><span id="cycle-fill" style="width:${cycle.percent}%"></span></div>
-            ${cycle.status === 'smoked' ? '<p class="cycle-lapse-note">由于这一天有抽烟，所以进度条归零，这天不能确认无烟。</p>' : ''}
-            <p class="cycle-boundary">${cycle.status === 'smoked' ? '这 24 小时不能确认无烟；下一个 24 小时仍按原定时间开始。' : cycle.status === 'future' ? '计划开始于' : '这 24 小时结束于'} ${cycle.boundary}</p>
-            ${state.startTimeNeedsReview ? '<p class="cycle-review">旧计划只记录了日期，暂按 00:00 计算。</p>' : ''}
+            ${cycle.status === 'smoked' ? '<p class="cycle-lapse-note">由于这一天有抽烟，所以进度条归零，这天不能确认无烟</p>' : ''}
+            <p class="cycle-boundary">${cycle.status === 'smoked' ? '这 24 小时不能确认无烟；下一个 24 小时仍按原定时间开始' : cycle.status === 'future' ? '计划开始于' : '这 24 小时结束于'} ${cycle.boundary}</p>
+            ${state.startTimeNeedsReview ? '<p class="cycle-review">旧计划只记录了日期，暂按 00:00 计算</p>' : ''}
             ${latestStatus === 'pending' || makeupPeriods.length ? `<div class="checkin-periods">
-              ${latestStatus === 'pending' ? `<div class="checkin-period-row"><div><strong>${dateLabel(latestPeriod.start, { month: 'numeric', day: 'numeric' })} 这一期</strong><small>${timeInputValue(latestPeriod.start)} 至次日 ${timeInputValue(latestPeriod.end)}</small></div><button class="primary-button" data-action="checkin" data-period-index="${latestPeriod.index}">确认无烟</button></div>` : ''}
-              ${makeupPeriods.length ? `<div class="checkin-makeup"><span>忘记打卡了？</span><button class="secondary-button" data-action="toggle-makeup" aria-controls="makeup-dates" aria-expanded="false">补卡</button></div><div class="makeup-dates" id="makeup-dates" hidden><p>选择要补确认的日期</p>${makeupPeriods.map((period) => `<div class="checkin-period-row"><div><strong>${dateLabel(period.start, { month: 'numeric', day: 'numeric' })} 这一期</strong><small>${timeInputValue(period.start)} 至次日 ${timeInputValue(period.end)}</small></div><button class="secondary-button" data-action="checkin" data-period-index="${period.index}">补这一天</button></div>`).join('')}</div>` : ''}
+              ${latestStatus === 'pending' ? `<div class="checkin-period-row"><div><strong>${dateLabel(latestPeriod.start, { month: 'numeric', day: 'numeric' })}这一日</strong><small>${timeInputValue(latestPeriod.start)} 至次日 ${timeInputValue(latestPeriod.end)}</small></div><button class="primary-button" data-action="checkin" data-period-index="${latestPeriod.index}">打卡 确认无烟</button></div>` : ''}
+              ${makeupPeriods.length ? `<div class="checkin-makeup"><span>忘记打卡了？</span><button class="secondary-button" data-action="toggle-makeup" aria-controls="makeup-dates" aria-expanded="false">补卡</button></div><div class="makeup-dates" id="makeup-dates" hidden><p>选择要补确认的日期</p>${makeupPeriods.map((period) => `<div class="checkin-period-row"><div><strong>${dateLabel(period.start, { month: 'numeric', day: 'numeric' })}这一日</strong><small>${timeInputValue(period.start)} 至次日 ${timeInputValue(period.end)}</small></div><button class="secondary-button" data-action="checkin" data-period-index="${period.index}">补这一天</button></div>`).join('')}</div>` : ''}
             </div>` : ''}</div>
             <div class="home-month">${monthCalendar()}</div>
-            <div class="home-lapse"><p>如果抽了，也请如实记录。之后仍可以继续。</p><button class="danger-button" data-action="lapse">记录一次吸烟</button></div>
+            <div class="home-lapse"><p>如果抽了，也请如实记录。之后仍可以继续</p><button class="danger-button" data-action="lapse">记录一次吸烟</button></div>
           </div></section>
         <section class="home-section" aria-labelledby="help-title"><div class="home-section-heading"><span class="home-section-index">03</span><div><h2 id="help-title">应对烟瘾</h2><p>想抽时先求助，忍住后再记录</p></div></div>
-          <div class="home-coping"><div class="home-coping-actions"><div class="home-help"><span class="home-action-icon">${icon('heart', 23)}</span><div><h3>现在想抽？</h3><p>先跟着呼吸，撑过这一阵。</p></div><button class="urge-action" data-action="urge">帮我缓一缓 ${icon('arrow', 17)}</button></div><div class="home-win-action"><span class="home-action-icon">${icon('check', 22)}</span><div><h3>刚刚忍住了？</h3><p>把这次成功记下来。</p></div><button class="primary-button" data-action="log-win">记录一次成功</button></div></div>
+          <div class="home-coping"><div class="home-coping-actions"><div class="home-help"><span class="home-action-icon">${icon('heart', 23)}</span><div><h3>现在想抽？</h3><p>先跟着呼吸，撑过这一阵</p></div><button class="urge-action" data-action="urge">帮我缓一缓 ${icon('arrow', 17)}</button></div><div class="home-win-action"><span class="home-action-icon">${icon('check', 22)}</span><div><h3>刚刚忍住了？</h3><p>把这次成功记下来</p></div><button class="primary-button" data-action="log-win">记录一次成功</button></div></div>
             <div class="home-wins"><div class="home-wins-summary"><div><strong>${urgeWins.length}<small>次</small></strong><span>今天成功应对</span></div><div><strong>${avoidedToday}<small>根</small></strong><span>今天实际忍住</span></div></div>
-              ${urgeWins.length ? `<div class="win-entries">${[...urgeWins].reverse().slice(0, 3).map((entry) => `<div class="win-entry"><span class="win-check">${icon('check', 13)}</span><span><strong>${dateLabel(entry.at, { hour: '2-digit', minute: '2-digit' })} · 忍住 ${entry.cigarettes} 根</strong><small>${entry.trigger ? `因为${escapeHtml(entry.trigger)}` : '一次真实的成功应对'}${entry.method ? ` · ${escapeHtml(entry.method)}` : ''}</small></span></div>`).join('')}</div>` : '<p class="home-wins-note">今天还没有记录。下一次忍住时，可以在这里留下它。</p>'}</div>
+              ${urgeWins.length ? `<div class="win-entries">${[...urgeWins].reverse().slice(0, 3).map((entry) => `<div class="win-entry"><span class="win-check">${icon('check', 13)}</span><span><strong>${dateLabel(entry.at, { hour: '2-digit', minute: '2-digit' })} · 忍住 ${entry.cigarettes} 根</strong><small>${entry.trigger ? `因为${escapeHtml(entry.trigger)}` : '一次真实的成功应对'}${entry.method ? ` · ${escapeHtml(entry.method)}` : ''}</small></span></div>`).join('')}</div>` : '<p class="home-wins-note">今天还没有记录。下一次忍住时，可以在这里留下它</p>'}</div>
           </div></section>
-      </div><p class="home-footnote">${icon('leaf', 14)} 不用一下子变好，我们一天一天来。</p>
+      </div><p class="home-footnote">${icon('leaf', 14)} 不用一下子变好，我们一天一天来</p>
     </section>${nav()}`;
     bindCommon();
     if (liveClockHandle) clearInterval(liveClockHandle);
@@ -474,7 +474,7 @@
       <div class="health-progress-label"><span>参考时间进度</span><strong aria-hidden="true">${animate ? '0.00' : timePercent(hours, item.end)}%</strong></div>
       <div class="health-progress-track" data-health-id="${item.id}" data-target-value="${target}" role="progressbar" aria-label="${item.title}的参考时间进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${timePercent(hours, item.end)}"><span class="health-progress-fill" style="transform:scaleX(${animate ? 0 : target / 100})"></span></div>
       <p class="health-remaining">${reached ? '已到达参考时间 · 不代表恢复完成' : `距参考${item.start === item.end ? '节点' : '期终点'}还有 ${healthTimeLeft(item.end - hours)}`}</p>
-      <details><summary>变化说明与来源</summary><p>${item.detail}</p><p>${item.start === item.end ? '达到该时间只表示经过了参考时长，不表示身体检测达标。' : '以参考范围的终点计算时间进度，进入范围不等于变化已完成。'}</p><a href="${sources[item.source]}" target="_blank" rel="noopener noreferrer">查看 ${item.source} 原始资料 ↗</a></details>
+      <details><summary>变化说明与来源</summary><p>${item.detail}</p><p>${item.start === item.end ? '达到该时间只表示经过了参考时长，不表示身体检测达标' : '以参考范围的终点计算时间进度，进入范围不等于变化已完成'}</p><a href="${sources[item.source]}" target="_blank" rel="noopener noreferrer">查看 ${item.source} 原始资料 ↗</a></details>
     </article>`;
   }).join('');
   const renderHealthSection = () => {
@@ -484,11 +484,11 @@
     const healthMotionOn = state.healthMotion === 'on';
     return `<section class="card health-section" aria-labelledby="health-title">
       <div class="section-title"><div><p class="eyebrow">BODY CHANGES OVER TIME</p><h2 id="health-title">身体变化里程碑</h2></div><span class="section-note"><strong id="health-reached">${milestones.filter((item) => hours >= item.end).length}</strong> / 24 个时间节点</span></div>
-      <p class="health-explainer">百分比表示到达参考时间的进度，不代表身体恢复比例。个人变化速度有所不同。</p>
-      ${systemReducesMotion ? `<div class="health-motion-choice"><span>${healthMotionOn ? '进度动画已由你开启。' : '设备设置了减少动态效果，进度暂时直接显示。'}</span><button type="button" data-health-motion aria-pressed="${healthMotionOn}">${healthMotionOn ? '关闭进度动画' : '开启进度动画'}</button></div>` : ''}
-      <div class="health-timeline"><div><strong>累计计入无烟时间</strong><span id="health-continuous-time">${formatDuration(cumulativeHealthHours() * 3600000)}</span></div><p id="health-timeline-note">吸烟日和未确认空白期不计入；累计无烟 ${totalSmokeFreeDays()} 天。参考进度不等于实际身体恢复程度。</p></div>
-      ${ruleDisclosure('健康参考进度＝累计计入无烟时间 ÷ 对应里程碑的参考时长，上限 100%。有吸烟记录的整个 24 小时周期及未确认空白期不计入；此前无烟时间保留。B 的历史估算计入，C 到开始时间才计入。这只是时间参考，不是身体恢复比例或检查结果。')}
-      <div class="health-next"><div><span class="health-next-kicker">下一份值得期待的变化</span><h3 id="health-next-title">${next ? next.title : '24 个参考时间节点，全部到达'}</h3><p id="health-next-copy">${next ? `${next.time} · ${next.description}` : '长期坚持值得纪念，继续照顾好自己。'}</p></div><div class="health-next-progress"><strong id="health-next-percent">${next ? timePercent(hours, next.end) : '100.00'}%</strong><span>参考时间进度</span></div></div>
+      <p class="health-explainer">百分比表示到达参考时间的进度，不代表身体恢复比例。个人变化速度有所不同</p>
+      ${systemReducesMotion ? `<div class="health-motion-choice"><span>${healthMotionOn ? '进度动画已由你开启' : '设备设置了减少动态效果，进度暂时直接显示'}</span><button type="button" data-health-motion aria-pressed="${healthMotionOn}">${healthMotionOn ? '关闭进度动画' : '开启进度动画'}</button></div>` : ''}
+      <div class="health-timeline"><div><strong>累计计入无烟时间</strong><span id="health-continuous-time">${formatDuration(cumulativeHealthHours() * 3600000)}</span></div><p id="health-timeline-note">吸烟日和未确认空白期不计入；累计无烟 ${totalSmokeFreeDays()} 天。参考进度不等于实际身体恢复程度</p></div>
+      ${ruleDisclosure('健康参考进度＝累计计入无烟时间 ÷ 对应里程碑的参考时长，上限 100%。有吸烟记录的整个 24 小时周期及未确认空白期不计入；此前无烟时间保留。B 的历史估算计入，C 到开始时间才计入。这只是时间参考，不是身体恢复比例或检查结果')}
+      <div class="health-next"><div><span class="health-next-kicker">下一份值得期待的变化</span><h3 id="health-next-title">${next ? next.title : '24 个参考时间节点，全部到达'}</h3><p id="health-next-copy">${next ? `${next.time} · ${next.description}` : '长期坚持值得纪念，继续照顾好自己'}</p></div><div class="health-next-progress"><strong id="health-next-percent">${next ? timePercent(hours, next.end) : '100.00'}%</strong><span>参考时间进度</span></div></div>
       <div class="health-filters" role="group" aria-label="筛选身体变化里程碑">
         <button type="button" data-health-filter="all" aria-pressed="${healthFilter === 'all'}">全部 24</button>
         <button type="button" data-health-filter="early" aria-pressed="${healthFilter === 'early'}">初期 · 3 天内</button>
@@ -496,7 +496,7 @@
         <button type="button" data-health-filter="long" aria-pressed="${healthFilter === 'long'}">长期 · 持续获益</button>
       </div>
       <div class="health-milestone-grid" id="health-milestone-grid">${milestoneCards(true)}</div>
-      <p class="health-source-note">资料参考 <a href="${sources.NHS}" target="_blank" rel="noopener noreferrer">NHS</a> 与 <a href="${sources.CDC}" target="_blank" rel="noopener noreferrer">CDC</a>。这里按累计无烟时间显示参考进度，不代表实际医学恢复；范围类节点按参考期终点计算，月按 30 天、年按 365 天折算。</p>
+      <p class="health-source-note">资料参考 <a href="${sources.NHS}" target="_blank" rel="noopener noreferrer">NHS</a> 与 <a href="${sources.CDC}" target="_blank" rel="noopener noreferrer">CDC</a>。这里按累计无烟时间显示参考进度，不代表实际医学恢复；范围类节点按参考期终点计算，月按 30 天、年按 365 天折算</p>
     </section>`;
   };
   const stopHealthProgress = () => {
@@ -570,7 +570,7 @@
     const next = milestones.find((item) => hours < item.end);
     app.querySelector('#health-reached').textContent = milestones.filter((item) => hours >= item.end).length;
     app.querySelector('#health-next-title').textContent = next ? next.title : '24 个参考时间节点，全部到达';
-    app.querySelector('#health-next-copy').textContent = next ? `${next.time} · ${next.description}` : '长期坚持值得纪念，继续照顾好自己。';
+    app.querySelector('#health-next-copy').textContent = next ? `${next.time} · ${next.description}` : '长期坚持值得纪念，继续照顾好自己';
     app.querySelector('#health-next-percent').textContent = `${next ? timePercent(hours, next.end) : '100.00'}%`;
     grid.innerHTML = milestoneCards(true);
     grid.querySelectorAll('[data-health-id]').forEach((card) => {
@@ -581,7 +581,7 @@
   const renderAutoSavingsSection = () => {
     const amount = smokeFreeSavings();
     return `<section class="card auto-savings-card" aria-labelledby="auto-savings-title">
-      <div class="auto-savings-copy"><p class="eyebrow">EVERY MOMENT ADDS UP</p><h2 id="auto-savings-title">累计预估省下</h2><p>从戒烟开始按已计入时间、原先烟量和烟价累计估算，扣除已记录的吸烟支数；未确认空白期暂停累计。</p><p class="auto-savings-formula">日均 ${state.cigarettesPerDay || '—'} 支 · ¥${state.packPrice || '—'} / ${state.packCount || 20} 支</p>${ruleDisclosure('累计节省＝（已计入时间 ÷ 24 小时 × 原先日均支数－戒烟开始后记录的吸烟支数）× 每包价格 ÷ 每包支数，最低为 0。B 的注册前历史估算计入，C 在开始前为 0。吸烟只扣实际记录的支数，以前省下的金额不清零；未确认空白期不计入时间。')}${amount === null ? '<button class="secondary-button" data-page="settings">填写烟量与烟价 →</button>' : '<span class="auto-savings-note">这项累计估算与逐支记录金额分别显示</span>'}</div>
+      <div class="auto-savings-copy"><p class="eyebrow">EVERY MOMENT ADDS UP</p><h2 id="auto-savings-title">累计预估省下</h2><p>从戒烟开始按已计入时间、原先烟量和烟价累计估算，扣除已记录的吸烟支数；未确认空白期暂停累计</p><p class="auto-savings-formula">日均 ${state.cigarettesPerDay || '—'} 支 · ¥${state.packPrice || '—'} / ${state.packCount || 20} 支</p>${ruleDisclosure('累计节省＝（已计入时间 ÷ 24 小时 × 原先日均支数－戒烟开始后记录的吸烟支数）× 每包价格 ÷ 每包支数，最低为 0。B 的注册前历史估算计入，C 在开始前为 0。吸烟只扣实际记录的支数，以前省下的金额不清零；未确认空白期不计入时间')}${amount === null ? '<button class="secondary-button" data-page="settings">填写烟量与烟价 →</button>' : '<span class="auto-savings-note">这项累计估算与逐支记录金额分别显示</span>'}</div>
       <div class="money-orbit" aria-label="无烟时间预估节省金额"><div class="money-orbit-core">${moneyBag()}<strong id="timed-savings-value" aria-live="off">${amount === null ? '—' : `¥${amount}`}</strong><span>实时预估</span></div></div>
     </section>`;
   };
@@ -595,7 +595,7 @@
       <div class="section-title"><div><p class="eyebrow">YOUR JOURNEY</p><h2 id="rank-title">我的晋级路线</h2></div><span class="section-note">${rankRoutes[route].label} · 累计无烟 ${days} 天</span></div>
       <div class="rank-summary"><div><span>当前称号</span><strong>${current.label}</strong><small>第 ${current.tier + 1} / 10 大段位 · 第 ${stages.findIndex((stage) => stage.startDay === current.startDay) + 1} / 34 小段位</small></div><div class="rank-summary-next"><span>下一步</span><strong>${next ? next.label : '已到达最高段位'}</strong><small>${next ? `还需 ${remainingDays} 个累计无烟日` : '继续记录每个无烟日子'}</small></div></div>
       <div class="rank-progress-label"><span>当前小段位进度</span><strong>${percent}%</strong></div><progress max="100" value="${percent}" aria-label="当前小段位进度 ${percent}%"></progress>
-      <p class="rank-explainer">称号只依据累计无烟天数，不评价健康状况或个人能力。有吸烟记录的 24 小时周期及未确认空白期不计入，之前积累的天数保留。</p>
+      <p class="rank-explainer">称号只依据累计无烟天数，不评价健康状况或个人能力。有吸烟记录的 24 小时周期及未确认空白期不计入，之前积累的天数保留</p>
       <details class="rank-path"><summary>查看完整晋级路线 · 10 大段位 / 34 小段位</summary><ol>${rankRoutes[route].names.map((name, tier) => {
         const tierStages = stages.filter((stage) => stage.tier === tier);
         return `<li class="rank-tier ${tier === current.tier ? 'current' : ''}"><strong>${name}</strong><span>${tierStages.map((stage) => `<span class="rank-stage ${stage.startDay === current.startDay ? 'current' : ''}">${stage.division || name} · ${stage.startDay} 天</span>`).join('')}</span></li>`;
@@ -604,18 +604,19 @@
   };
   const renderGrowth = () => {
     stopHealthProgress();
-    const goalSaved = smokeFreeSavings();
+    const goalSaved = goalSavedAmount();
     const goalReached = Number(state.savingsGoal) > 0 && Number(goalSaved) >= Number(state.savingsGoal);
+    const goalHistory = (state.savingsGoalHistory || []).slice().reverse().map((goal) => `<div class="goal-history-row"><span>目标奖励：${escapeHtml(goal.name)} <small>¥${goal.amount}</small></span><strong>已完成</strong></div>`).join('');
     const recentWins = [...(state.urgeWins || [])].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 12);
     const recentLapses = [...(state.lapses || [])].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 12);
     const historyRows = (entries, type) => entries.map((entry) => `<div class="history-row"><div>${type === 'win' ? `忍住 ${entry.cigarettes} 根` : `吸烟 ${entry.cigarettes || 1} 根`}<small>${dateLabel(entry.at, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${entry.trigger ? ` · ${escapeHtml(entry.trigger)}` : ''}${entry.method ? ` · ${escapeHtml(entry.method)}` : ''}</small></div><span class="history-tag ${type === 'win' ? 'success-tag' : ''}">${type === 'win' ? `${flowerIcon(17)} 1 朵` : '已记录'}</span></div>`).join('');
-    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">LITTLE BY LITTLE</p><h1>看看你走了多远。</h1><p class="subtitle">记录每一步，比追求完美更重要。</p></div></div>
-      ${renderRankSection()}
-      <div class="stats-grid"><article class="stat-card"><span class="stat-label">${state.startMode === 'continuing' ? '累计戒烟时长（含历史估算）' : '累计已记录戒烟时长'}</span><strong id="total-smoke-free">${quitElapsedDays()} <small>天</small></strong>${ruleDisclosure(startRule())}</article><article class="stat-card"><span class="stat-label">累计无烟天数</span><strong><span id="total-smoke-free-days">${totalSmokeFreeDays()}</span> <small>天</small></strong>${ruleDisclosure('累计无烟时间＝已计入戒烟时间－有吸烟记录的 24 小时周期；未确认空白期也不计入。累计满 24 小时显示 1 天。同一期吸烟多次只扣除这一个周期，以前的无烟时间保留。')}</article><article class="stat-card"><span class="stat-label">累计打卡</span><strong>${confirmedCheckins().length} <small>次</small></strong>${ruleDisclosure('每满一个 24 小时周期，确认无烟后增加 1 次。只能补最近三个已结束的周期；有吸烟记录的周期不能确认。B 的历史估算计入累计时间，但不会自动生成打卡次数。')}</article><article class="stat-card flower-stat"><span class="stat-label">累计小红花</span><strong>${flowerIcon()}<span>${(state.urgeWins || []).length}</span> <small>朵</small></strong>${ruleDisclosure('每保存一次“成功忍住”记录，增加 1 朵小红花。小红花按记录次数计算，不按忍住的支数计算，也不因之后吸烟清零。')}</article></div>
+    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">LITTLE BY LITTLE</p><h1>看看你走了多远</h1><p class="subtitle">记录每一步，比追求完美更重要</p></div></div>
+      <div class="stats-grid"><article class="stat-card"><span class="stat-label">${state.startMode === 'continuing' ? '累计戒烟时长（含历史估算）' : '累计已记录戒烟时长'}</span><strong id="total-smoke-free">${quitElapsedDays()} <small>天</small></strong>${ruleDisclosure(startRule())}</article><article class="stat-card"><span class="stat-label">累计无烟天数</span><strong><span id="total-smoke-free-days">${totalSmokeFreeDays()}</span> <small>天</small></strong>${ruleDisclosure('累计无烟时间＝已计入戒烟时间－有吸烟记录的 24 小时周期；未确认空白期也不计入。累计满 24 小时显示 1 天。同一期吸烟多次只扣除这一个周期，以前的无烟时间保留')}</article><article class="stat-card"><span class="stat-label">累计打卡</span><strong>${confirmedCheckins().length} <small>次</small></strong>${ruleDisclosure('每满一个 24 小时周期，确认无烟后增加 1 次。只能补最近三个已结束的周期；有吸烟记录的周期不能确认。B 的历史估算计入累计时间，但不会自动生成打卡次数')}</article><article class="stat-card flower-stat"><span class="stat-label">累计小红花</span><strong>${flowerIcon()}<span>${(state.urgeWins || []).length}</span> <small>朵</small></strong>${ruleDisclosure('每保存一次“成功忍住”记录，增加 1 朵小红花。小红花按记录次数计算，不按忍住的支数计算，也不因之后吸烟清零')}</article></div>
       ${renderAutoSavingsSection()}
+      <section class="card savings-goal-card"><div class="section-title"><div><p class="eyebrow">A REWARD THAT MATTERS</p><h2>${state.savingsGoalName ? `目标奖励：${escapeHtml(state.savingsGoalName)}` : '给自己设一个奖励目标'}</h2></div><button class="link-button" ${goalReached ? 'data-action="next-goal"' : 'data-page="settings"'}><span id="goal-action-label">${goalReached ? '设置下一个目标' : state.savingsGoal ? '调整目标' : '设置目标'}</span> →</button></div>${state.savingsGoal ? `<div class="goal-amount"><strong id="goal-saved-amount">¥${goalSaved || 0}</strong><span> / ¥${state.savingsGoal} · 本目标预估节省</span></div><div class="goal-track" id="goal-track" role="progressbar" aria-label="奖励目标预估节省进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((Number(goalSaved) || 0) / state.savingsGoal * 100))}"><span id="goal-track-fill" style="width:${Math.min(100, Math.round((Number(goalSaved) || 0) / state.savingsGoal * 100))}%"></span></div><div class="goal-complete" id="goal-complete" role="status" aria-live="polite" ${goalReached ? '' : 'hidden'}><strong>目标金额达成，真棒！</strong><p>这份坚持是你一天一天攒下来的。预估节省已达到目标金额，点击“设置下一个目标”，让新的奖励从零开始</p></div><p class="chart-legend">${state.savingsGoalStartAmount ? '从设置本目标时开始累计估算，并扣除已记录的吸烟支数' : '从戒烟开始累计估算，并扣除已记录的吸烟支数'}</p>` : '<p class="wins-empty">把戒烟带来的积累，连到一个你真心想要的奖励上</p>'}${goalHistory ? `<div class="goal-history"><h3>已完成的目标</h3>${goalHistory}</div>` : ''}</section>
+      <section class="card history-card"><div class="section-title"><h2>戒烟历程</h2><span class="section-note">累计忍住 ${totalAvoidedCigarettes()} 根</span></div><div class="history-groups"><section class="history-group" aria-labelledby="win-history-title"><div class="history-group-heading"><h3 id="win-history-title"><span aria-hidden="true">😄</span> 成功应对</h3><small>已收获 ${(state.urgeWins || []).length} 朵小红花</small></div>${recentWins.length ? historyRows(recentWins, 'win') : '<p class="history-group-empty">还没有成功应对记录</p>'}</section><section class="history-group" aria-labelledby="lapse-history-title"><div class="history-group-heading"><h3 id="lapse-history-title"><span aria-hidden="true">😭</span> 糟糕了，吸烟了</h3><small>已记录 ${(state.lapses || []).length} 次</small></div>${recentLapses.length ? historyRows(recentLapses, 'lapse') : '<p class="history-group-empty">还没有吸烟记录</p>'}</section></div></section>
+      ${renderRankSection()}
       ${renderHealthSection()}
-      <section class="card savings-goal-card"><div class="section-title"><div><p class="eyebrow">A REWARD THAT MATTERS</p><h2>${escapeHtml(state.savingsGoalName || '给自己设一个奖励目标')}</h2></div><button class="link-button" data-page="settings"><span id="goal-action-label">${goalReached ? '设置下一个目标' : state.savingsGoal ? '调整目标' : '设置目标'}</span> →</button></div>${state.savingsGoal ? `<div class="goal-amount"><strong id="goal-saved-amount">¥${goalSaved || 0}</strong><span> / ¥${state.savingsGoal} · 预估节省</span></div><div class="goal-track" id="goal-track" role="progressbar" aria-label="奖励目标预估节省进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((Number(goalSaved) || 0) / state.savingsGoal * 100))}"><span id="goal-track-fill" style="width:${Math.min(100, Math.round((Number(goalSaved) || 0) / state.savingsGoal * 100))}%"></span></div><div class="goal-complete" id="goal-complete" role="status" aria-live="polite" ${goalReached ? '' : 'hidden'}><strong>目标金额达成，真棒！</strong><p>这份坚持是你一天一天攒下来的。预估节省已达到目标金额，可以修改目标，开始期待下一件想做的事。</p></div><p class="chart-legend">从戒烟开始累计估算，并扣除已记录的吸烟支数。</p>` : '<p class="wins-empty">把戒烟带来的积累，连到一个你真心想要的奖励上。</p>'}</section>
-      <section class="card history-card"><div class="section-title"><h2>戒烟历程</h2><span class="section-note">累计忍住 ${totalAvoidedCigarettes()} 根</span></div><div class="history-groups"><section class="history-group" aria-labelledby="win-history-title"><div class="history-group-heading"><h3 id="win-history-title"><span aria-hidden="true">😄</span> 成功应对</h3><small>已收获 ${(state.urgeWins || []).length} 朵小红花</small></div>${recentWins.length ? historyRows(recentWins, 'win') : '<p class="history-group-empty">还没有成功应对记录。</p>'}</section><section class="history-group" aria-labelledby="lapse-history-title"><div class="history-group-heading"><h3 id="lapse-history-title"><span aria-hidden="true">😭</span> 糟糕了，吸烟了</h3><small>已记录 ${(state.lapses || []).length} 次</small></div>${recentLapses.length ? historyRows(recentLapses, 'lapse') : '<p class="history-group-empty">还没有吸烟记录。</p>'}</section></div></section>
     </section>${nav()}`;
     bindCommon();
     bindHealthSection();
@@ -633,21 +634,22 @@
       const healthTimeNode = app.querySelector('#health-continuous-time');
       if (healthTimeNode) healthTimeNode.textContent = formatDuration(cumulativeHealthHours() * 3600000);
       const healthNoteNode = app.querySelector('#health-timeline-note');
-      if (healthNoteNode) healthNoteNode.textContent = `吸烟日和未确认空白期不计入；累计无烟 ${totalSmokeFreeDays()} 天。参考进度不等于实际身体恢复程度。`;
+      if (healthNoteNode) healthNoteNode.textContent = `吸烟日和未确认空白期不计入；累计无烟 ${totalSmokeFreeDays()} 天。参考进度不等于实际身体恢复程度`;
       const savingsNode = app.querySelector('#timed-savings-value');
       if (savingsNode) {
         const amount = smokeFreeSavings();
         savingsNode.textContent = amount === null ? '—' : `¥${amount}`;
         if (state.savingsGoal) {
-          const goalPercent = Math.min(100, Math.round((Number(amount) || 0) / state.savingsGoal * 100));
+          const goalAmount = goalSavedAmount(amount);
+          const goalPercent = Math.min(100, Math.round((Number(goalAmount) || 0) / state.savingsGoal * 100));
           const goalAmountNode = app.querySelector('#goal-saved-amount');
-          if (goalAmountNode) goalAmountNode.textContent = `¥${amount || 0}`;
+          if (goalAmountNode) goalAmountNode.textContent = `¥${goalAmount || 0}`;
           const goalFill = app.querySelector('#goal-track-fill');
           if (goalFill) goalFill.style.width = `${goalPercent}%`;
           app.querySelector('#goal-track')?.setAttribute('aria-valuenow', String(goalPercent));
           const goalComplete = app.querySelector('#goal-complete');
-          if (goalComplete && goalComplete.hidden !== (Number(amount) < Number(state.savingsGoal))) {
-            goalComplete.hidden = Number(amount) < Number(state.savingsGoal);
+          if (goalComplete && goalComplete.hidden !== (Number(goalAmount) < Number(state.savingsGoal))) {
+            goalComplete.hidden = Number(goalAmount) < Number(state.savingsGoal);
             app.querySelector('#goal-action-label').textContent = goalComplete.hidden ? '调整目标' : '设置下一个目标';
           }
         }
@@ -657,25 +659,49 @@
   };
 
   const renderBuddy = () => {
+    if (liveClockHandle) clearInterval(liveClockHandle);
     const saved = smokeFreeSavings();
-    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">A FRIENDLY LITTLE NUDGE</p><h1>找个人，陪你走一段。</h1><p class="subtitle">和信任的人说一声，有时就会多一点勇气。</p></div></div>
-      <section class="buddy-card"><div><p class="eyebrow">JUST FOR YOU AND YOUR FRIEND</p><h2>不用一个人扛着。</h2><p class="subtitle">邀请一个你信任的人，给你的戒烟旅程一点小小的支持。</p></div><article class="invite-preview"><div class="invite-art">${icon('leaf', 39)}</div><p class="eyebrow">MY LITTLE PROMISE</p><h2>我正在认真戒烟。</h2><p>从今天起，我想给自己多一点照顾。<br>如果你愿意，陪我聊聊天就很好。</p><div class="invite-stats"><div class="invite-stat"><strong>${totalSmokeFreeDays()}</strong><span>无烟天数</span></div><div class="invite-stat"><strong>${confirmedCheckins().length}</strong><span>次打卡</span></div>${saved === null ? '' : `<div class="invite-stat"><strong id="buddy-savings-value">¥${saved}</strong><span>预估省下</span></div>`}</div></article><div class="centered-actions"><button class="primary-button" data-action="share-demo">${icon('people', 16)} 预览邀请卡</button><p>网页样稿仅演示邀请卡，不会真的发送或建立好友关系。</p></div></section>
+    const route = state.rankRoute === 'journey' ? 'journey' : 'competitive';
+    const title = rankProgress(totalSmokeFreeDays(), route).current.label;
+    const avoided = estimatedAvoidedCigarettes();
+    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">A FRIENDLY LITTLE NUDGE</p><h1>找个人，陪你走一段</h1><p class="subtitle">和信任的人说一声，有时就会多一点勇气</p></div></div>
+      <section class="buddy-card"><div><p class="eyebrow">JUST FOR YOU AND YOUR FRIEND</p><h2>不用一个人扛着</h2><p class="subtitle">邀请一个你信任的人，给你的戒烟旅程一点小小的支持</p></div><article class="invite-preview"><div class="invite-art">${icon('leaf', 39)}</div><p class="eyebrow">MY LITTLE PROMISE</p><h2>${nickname() ? `${escapeHtml(nickname())}正在认真戒烟` : '我正在认真戒烟'}</h2><p>从今天起，我想给自己多一点照顾<br>如果你愿意，陪我聊聊天就很好</p><div class="invite-stats"><div class="invite-stat"><strong id="buddy-smoke-free-days">${totalSmokeFreeDays()}</strong><span>无烟天数</span></div><div class="invite-stat"><strong id="buddy-checkins">${confirmedCheckins().length}</strong><span>次打卡</span></div>${saved === null ? '' : `<div class="invite-stat"><strong id="buddy-savings-value">¥${saved}</strong><span>预估省下</span></div>`}</div><div class="invite-extra"><div class="invite-extra-stats"><div><strong id="buddy-avoided">${avoided === null ? '—' : `${avoided} 根`}</strong><span>预估戒掉</span></div><div><strong id="buddy-flowers">${(state.urgeWins || []).length} 朵</strong><span>忍住获得的小红花</span></div><div><strong id="buddy-smoked">${smokedCigarettesSinceQuit()} 根</strong><span>戒烟期间吸烟</span></div></div><div class="invite-extra-rank"><span>当前称号</span><strong id="buddy-rank">${title}</strong></div></div></article><div class="centered-actions"><button class="primary-button" data-action="share-demo">${icon('people', 16)} 预览邀请卡</button><p>网页样稿仅演示邀请卡，不会真的发送或建立好友关系</p></div></section>
     </section>${nav()}`;
     bindCommon();
-    if (saved !== null) liveClockHandle = setInterval(() => {
+    liveClockHandle = setInterval(() => {
+      if (currentPage !== 'buddy') return;
+      const days = totalSmokeFreeDays();
+      const avoidedNow = estimatedAvoidedCigarettes();
+      const values = {
+        '#buddy-smoke-free-days': String(days),
+        '#buddy-checkins': String(confirmedCheckins().length),
+        '#buddy-avoided': avoidedNow === null ? '—' : `${avoidedNow} 根`,
+        '#buddy-flowers': `${(state.urgeWins || []).length} 朵`,
+        '#buddy-smoked': `${smokedCigarettesSinceQuit()} 根`,
+        '#buddy-rank': rankProgress(days, route).current.label,
+      };
+      for (const [selector, value] of Object.entries(values)) {
+        const node = app.querySelector(selector);
+        if (node) node.textContent = value;
+      }
       const amount = app.querySelector('#buddy-savings-value');
-      if (currentPage === 'buddy' && amount) amount.textContent = `¥${smokeFreeSavings()}`;
+      if (amount) amount.textContent = `¥${smokeFreeSavings()}`;
     }, 1000);
   };
 
   const renderSettings = () => {
-    const background = BACKGROUNDS[state.pageBackground] || BACKGROUNDS.blue;
+    const background = BACKGROUNDS[state.pageBackground] || BACKGROUNDS.midnight;
     const route = state.rankRoute === 'journey' ? 'journey' : 'competitive';
     const startModeLabel = { now: 'A · 准备戒烟，从现在开始', continuing: 'B · 正在戒烟的路上，现在继续打卡记录', planned: 'C · 有戒烟打算，选择一个好日子开始计划' }[state.startMode] || '原有计划（未记录首次选择）';
-    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">MAKE IT YOURS</p><h1>让陪伴刚刚好。</h1><p class="subtitle">最初的起点保存在这里，其他偏好可以按需调整。</p></div></div>
-      <section class="card settings-list"><div class="setting-row"><div class="setting-info"><strong>每日鼓励提醒</strong><small>功能准备中，暂不发送通知</small></div><span class="setting-coming-soon">即将开放</span></div><div class="subtle-copy">“松口气”是一个行为陪伴原型，不提供诊断或个性化医疗建议。如果戒烟过程中有健康或用药方面的疑问，可以咨询专业人士。</div></section>
+    app.innerHTML = `${topbar()}<section class="page"><div class="page-heading"><div><p class="eyebrow">MAKE IT YOURS</p><h1>让陪伴刚刚好</h1><p class="subtitle">最初的起点保存在这里，其他偏好可以按需调整</p></div></div>
+      <section class="card profile-setting" aria-labelledby="profile-setting-title"><div class="section-title"><div><p class="eyebrow">JUST FOR YOU</p><h2 id="profile-setting-title">我的昵称</h2></div></div><p class="profile-setting-note">昵称可以留空，不影响打卡和查看戒烟数据；填写后只保存在当前浏览器中</p><label class="form-field"><span>昵称 <small class="optional">选填</small></span><input id="nickname" type="text" maxlength="16" autocomplete="nickname" value="${escapeHtml(nickname())}" placeholder="未设置昵称" readonly /></label><button class="primary-button" data-action="edit-nickname">修改</button></section>
+      <section class="card settings-list"><div class="setting-row"><div class="setting-info"><strong>每日鼓励提醒</strong><small>功能准备中，暂不发送通知</small></div><span class="setting-coming-soon">即将开放</span></div><div class="subtle-copy">“松口气”是一个行为陪伴原型，不提供诊断或个性化医疗建议。如果戒烟过程中有健康或用药方面的疑问，可以咨询专业人士</div></section>
       <section class="card history-card background-setting"><div class="setting-row"><div class="setting-info"><strong>页面配色</strong><small>当前：${background.label} · 背景与卡片同步搭配</small></div><button class="secondary-button" data-action="page-background">选择配色</button></div></section>
-      <section class="card rank-setting-card" aria-labelledby="rank-setting-title"><div class="section-title"><div><p class="eyebrow">YOUR JOURNEY</p><h2 id="rank-setting-title">称号路线</h2></div></div><p class="rank-setting-note">选择一种称号风格，今天和成长页面会同步显示。累计无烟天数和晋级进度不会改变。</p><fieldset class="rank-route-options"><legend class="sr-only">选择称号路线</legend>${Object.entries(rankRoutes).map(([key, value]) => `<label class="rank-route-option"><input type="radio" name="rankRoute" value="${key}" ${route === key ? 'checked' : ''} /><span><strong>${value.label}</strong><small>${value.names[0]} → ${value.names[value.names.length - 1]}</small></span></label>`).join('')}</fieldset></section>
+      <section class="card rank-setting-card" aria-labelledby="rank-setting-title"><div class="section-title"><div><p class="eyebrow">YOUR JOURNEY</p><h2 id="rank-setting-title">称号风格与晋级线路</h2></div></div><p class="rank-setting-note">选择一种称号风格，也可以展开查看各自的晋级线路。今天和成长页面会同步显示，累计无烟天数不会改变</p><fieldset class="rank-route-options"><legend class="sr-only">选择称号风格与晋级线路</legend>${Object.entries(rankRoutes).map(([key, value]) => {
+        const stages = rankStages(key);
+        const current = rankProgress(totalSmokeFreeDays(), key).current;
+        return `<div class="rank-route-card"><label class="rank-route-option"><input type="radio" name="rankRoute" value="${key}" ${route === key ? 'checked' : ''} /><span><strong>${value.label}</strong><small>${value.names[0]} → ${value.names[value.names.length - 1]}</small></span></label><details class="rank-route-details"><summary>查看${value.label}的晋级线路</summary><ol>${value.names.map((name, tier) => `<li class="rank-tier rank-route-tier ${tier === current.tier ? 'current' : ''}"><strong>${name}</strong><span>${stages.filter((stage) => stage.tier === tier).map((stage) => `<span class="rank-stage ${stage.startDay === current.startDay ? 'current' : ''}">${stage.division || name} · ${stage.startDay} 天</span>`).join('')}</span></li>`).join('')}</ol></details></div>`;
+      }).join('')}</fieldset></section>
       <section class="card history-card plan-settings-card"><div class="section-title"><div><p class="eyebrow">YOUR QUIT PLAN</p><h2>最初的戒烟计划</h2></div></div><div class="history-row"><div>开始方式<small>${escapeHtml(startModeLabel)}</small></div></div><div class="history-row"><div>${state.startMode === 'planned' ? '计划戒烟日' : '戒烟开始日期'}<small>${dateLabel(state.currentStartAt, { year: 'numeric', month: 'numeric', day: 'numeric' })} ${timeInputValue(state.currentStartAt)} · 每日打卡边界</small></div></div><div class="section-title goal-settings-title"><h2>我的奖励目标</h2></div><label class="form-field"><span>想为自己买什么</span><input id="savings-goal-name" type="text" value="${escapeHtml(state.savingsGoalName || '')}" placeholder="例如：耳机、旅行" /></label><label class="form-field"><span>目标金额</span><div class="input-wrap"><input id="savings-goal" type="number" min="1" max="100000" value="${state.savingsGoal || ''}" placeholder="比如 1200" /><em>元</em></div></label><button class="primary-button save-plan-button" data-action="save-goal">保存奖励目标</button><div class="history-row"><div>吸烟量和烟价<small>${state.packPrice ? '¥' + state.packPrice + ' / ' + (state.packCount || 20) + ' 支' + (state.cigarettesPerDay ? ' · 日常 ' + state.cigarettesPerDay + ' 支 / 天' : '') : '填写烟价后按逐支记录估算金额'}</small></div><button class="link-button" data-action="edit-estimate">${state.packPrice ? '修改' : '填写'}</button></div><div class="history-row"><div>重置本机样稿数据</div><button class="link-button" data-action="reset">重置</button></div></section>
     </section>${nav()}`;
     bindCommon();
@@ -688,14 +714,15 @@
       const input = app.querySelector(selector);
       input?.addEventListener?.('input', () => clearFieldError(input));
     });
+    app.querySelector('#nickname')?.addEventListener?.('input', (event) => clearFieldError(event.target));
   };
 
   const renderUrge = () => {
     if (timerHandle) clearInterval(timerHandle);
     secondsLeft = 300;
-    app.innerHTML = `${topbar()}<section class="page urge-page"><div class="page-heading"><div><p class="eyebrow">THIS FEELING WILL PASS</p><h1>先陪自己待一会。</h1><p class="subtitle">烟瘾会起起落落。现在不用做决定，先照顾好这一分钟。</p></div></div>
-      <section class="breath-card"><span class="time-chip">${icon('clock', 14)} 五分钟小练习</span><div class="breath-ring" id="breath-ring"><div><div class="breath-time" id="timer">05:00</div><span class="breath-caption">留一点时间给自己</span></div></div><div class="breath-instruction" id="breath-instruction">吸气 4 秒 · 慢慢呼气 6 秒</div><p class="breath-subtitle" id="urge-message">鼻子轻轻吸气，嘴巴慢慢呼出去。<br>不需要做得完美，跟着自己的节奏就好。</p><button class="primary-button" data-action="start-timer" id="timer-button">${icon('spark', 16)} 开始五分钟</button></section>
-      <div class="urge-steps"><button class="urge-step" data-action="urge-method" data-method="呼吸练习"><span>01 · 呼吸</span><strong>${icon('leaf', 15)} 先慢下来</strong><small>慢慢吸气，再舒适地呼出去。</small></button><button class="urge-step" data-action="urge-method" data-method="喝几口水"><span>02 · 换个感觉</span><strong>${icon('cup', 15)} 喝几口水</strong><small>去倒杯水，让嘴巴忙一小会。</small></button><button class="urge-step" data-action="urge-method" data-method="出去走走"><span>03 · 动一动</span><strong>${icon('walk', 15)} 走一小圈</strong><small>站起来伸伸懒腰，换个地方。</small></button></div>
+    app.innerHTML = `${topbar()}<section class="page urge-page"><div class="page-heading"><div><p class="eyebrow">THIS FEELING WILL PASS</p><h1>先陪自己待一会</h1><p class="subtitle">烟瘾会起起落落。现在不用做决定，先照顾好这一分钟</p></div></div>
+      <section class="breath-card"><span class="time-chip">${icon('clock', 14)} 五分钟小练习</span><div class="breath-ring" id="breath-ring"><div><div class="breath-time" id="timer">05:00</div><span class="breath-caption">留一点时间给自己</span></div></div><div class="breath-instruction" id="breath-instruction">吸气 4 秒 · 慢慢呼气 6 秒</div><p class="breath-subtitle" id="urge-message">鼻子轻轻吸气，嘴巴慢慢呼出去<br>不需要做得完美，跟着自己的节奏就好</p><button class="primary-button" data-action="start-timer" id="timer-button">${icon('spark', 16)} 开始五分钟</button></section>
+      <div class="urge-steps"><button class="urge-step" data-action="urge-method" data-method="呼吸练习"><span>01 · 呼吸</span><strong>${icon('leaf', 15)} 先慢下来</strong><small>慢慢吸气，再舒适地呼出去</small></button><button class="urge-step" data-action="urge-method" data-method="喝几口水"><span>02 · 换个感觉</span><strong>${icon('cup', 15)} 喝几口水</strong><small>去倒杯水，让嘴巴忙一小会</small></button><button class="urge-step" data-action="urge-method" data-method="出去走走"><span>03 · 动一动</span><strong>${icon('walk', 15)} 走一小圈</strong><small>站起来伸伸懒腰，换个地方</small></button></div>
       <div class="urge-buttons"><button class="secondary-button" data-action="urge-continue">我还想抽</button><button class="secondary-button" data-action="urge-lapse">我已经抽了</button><button class="primary-button" data-action="urge-success">${icon('check', 15)} 这次我忍住了</button></div>
     </section>${nav()}`;
     bindCommon();
@@ -716,7 +743,7 @@
     if (action === 'log-win') { showUrgeWinDialog(); return; }
     if (action === 'urge-success') { showUrgeWinDialog(true); return; }
     if (action === 'urge-method') {
-      const messages = { 呼吸练习: '跟着自己的呼吸就好，不需要做得完美。', 喝几口水: '慢慢喝几口水，给自己一点停顿。', 出去走走: '换个地方，走一小圈，再看看感觉有没有变化。' };
+      const messages = { 呼吸练习: '跟着自己的呼吸就好，不需要做得完美', 喝几口水: '慢慢喝几口水，给自己一点停顿', 出去走走: '换个地方，走一小圈，再看看感觉有没有变化' };
       app.querySelectorAll('.urge-step').forEach((step) => step.classList.toggle('selected', step.dataset.method === event.currentTarget.dataset.method));
       const selected = app.querySelector('.urge-step.selected');
       const message = app.querySelector('#urge-message');
@@ -751,14 +778,38 @@
     if (action === 'share-demo') { showToast('邀请卡预览完成，可以想象分享给朋友啦 🌿'); return; }
     if (action === 'start-timer') { startTimer(); return; }
     if (action === 'edit-estimate') { showEstimateDialog(); return; }
+    if (action === 'next-goal') { showNextGoalDialog(); return; }
     if (action === 'page-background') { showBackgroundDialog(); return; }
+    if (action === 'edit-nickname') {
+      const input = app.querySelector('#nickname');
+      input.readOnly = false;
+      event.currentTarget.dataset.action = 'confirm-nickname';
+      event.currentTarget.textContent = '确认';
+      input.focus();
+      return;
+    }
+    if (action === 'confirm-nickname') {
+      const input = app.querySelector('#nickname');
+      const value = input.value.trim();
+      if (value.length > 16) { showFieldError(input, '昵称最多 16 个字'); return; }
+      state.nickname = value;
+      save(); render(); showToast(value ? '昵称已保存' : '昵称已清除'); return;
+    }
     if (action === 'save-goal') {
       const nameInput = app.querySelector('#savings-goal-name');
       const amountInput = app.querySelector('#savings-goal');
       const amount = amountInput.value.trim() ? Number(amountInput.value) : null;
       if (amount !== null && (!Number.isFinite(amount) || amount <= 0 || amount > 100000)) { showFieldError(amountInput, '目标金额请输入 1 到 100000 元'); return; }
       if (amount !== null && !nameInput.value.trim()) { showFieldError(nameInput, '请填写奖励目标名称'); return; }
-      state.savingsGoalName = nameInput.value.trim();
+      const nextName = nameInput.value.trim();
+      const changed = nextName !== (state.savingsGoalName || '') || amount !== (state.savingsGoal || null);
+      if (changed && state.savingsGoal && Number(goalSavedAmount()) >= Number(state.savingsGoal)) {
+        state.savingsGoalHistory = [...(state.savingsGoalHistory || []), { name: state.savingsGoalName, amount: state.savingsGoal }];
+        state.savingsGoalStartAmount = Number(smokeFreeSavings()) || 0;
+      } else if (changed && !state.savingsGoal && (state.savingsGoalHistory || []).length) {
+        state.savingsGoalStartAmount = Number(smokeFreeSavings()) || 0;
+      }
+      state.savingsGoalName = nextName;
       state.savingsGoal = amount;
       save(); render(); showToast('奖励目标已保存'); return;
     }
@@ -813,7 +864,7 @@
     state.lastEncouragementIndex = (Number.isInteger(state.lastEncouragementIndex) ? state.lastEncouragementIndex + 1 : 0) % ENCOURAGEMENTS.length;
     save();
     const encouragement = ENCOURAGEMENTS[state.lastEncouragementIndex];
-    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">ONE REAL WIN</p><h2>这次实际忍住了几根？</h2><p>按你这次原本想抽、最后忍住没抽的数量记录。每次都可以不同。</p><form id="win-form"><label class="form-field"><span>忍住的数量</span><div class="input-wrap"><input id="win-cigarettes" type="number" min="1" max="100" step="1" value="1" required /><em>根</em></div></label><label class="form-field"><span>当时的诱因 <i class="optional">选填</i></span><select id="win-trigger"><option value="">暂不填写</option><option>压力大</option><option>饭后习惯</option><option>应酬或社交</option><option>无聊</option><option>别人递烟</option><option>其他</option></select></label><label class="form-field"><span>帮到你的方法 <i class="optional">选填</i></span><select id="win-method"><option value="">暂不填写</option><option>慢慢呼吸</option><option>喝水</option><option>散步或换个地方</option><option>嚼无糖口香糖</option><option>分心做了别的事</option><option>其他</option></select></label><p class="win-encouragement" role="status">${encouragement}</p><div class="modal-actions"><button class="primary-button" type="submit">保存这次成功</button></div></form>`);
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">ONE REAL WIN</p><h2>这次实际忍住了几根？</h2><p>按你这次原本想抽、最后忍住没抽的数量记录。每次都可以不同</p><form id="win-form"><label class="form-field"><span>忍住的数量</span><div class="input-wrap"><input id="win-cigarettes" type="number" min="1" max="100" step="1" value="1" required /><em>根</em></div></label><label class="form-field"><span>当时的诱因 <i class="optional">选填</i></span><select id="win-trigger"><option value="">暂不填写</option><option>压力大</option><option>饭后习惯</option><option>应酬或社交</option><option>无聊</option><option>别人递烟</option><option>其他</option></select></label><label class="form-field"><span>帮到你的方法 <i class="optional">选填</i></span><select id="win-method"><option value="">暂不填写</option><option>慢慢呼吸</option><option>喝水</option><option>散步或换个地方</option><option>嚼无糖口香糖</option><option>分心做了别的事</option><option>其他</option></select></label><p class="win-encouragement" role="status">${encouragement}</p><div class="modal-actions"><button class="primary-button" type="submit">保存这次成功</button></div></form>`);
     backdrop.querySelector('#win-form').addEventListener('submit', (event) => {
       event.preventDefault();
       const cigarettes = Number(backdrop.querySelector('#win-cigarettes').value);
@@ -828,7 +879,7 @@
   };
 
   const showLapseDialog = () => {
-    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">A GENTLE RESET</p><h2>这次记下来就好。</h2><p>之前的坚持仍然保留。这次吸烟所在的 24 小时周期不计入累计无烟时长，我们可以一起看看是什么情境触发了吸烟。</p><form id="lapse-form"><label class="form-field"><span>这次实际抽了几根</span><div class="input-wrap"><input id="lapse-cigarettes" type="number" min="1" max="100" value="1" required /><em>根</em></div></label><label class="form-field"><span>当时的诱因 <i class="optional">选填</i></span><select id="lapse-trigger"><option value="">暂不填写</option><option>压力大</option><option>饭后习惯</option><option>应酬或社交</option><option>无聊</option><option>别人递烟</option><option>其他</option></select></label><div class="modal-actions"><button class="primary-button" type="submit">记录并继续今天</button><button class="link-button" type="button" data-close>先不记录</button></div></form>`);
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">A GENTLE RESET</p><h2>这次记下来就好</h2><p>之前的坚持仍然保留。这次吸烟所在的 24 小时周期不计入累计无烟时长，我们可以一起看看是什么情境触发了吸烟</p><form id="lapse-form"><label class="form-field"><span>这次实际抽了几根</span><div class="input-wrap"><input id="lapse-cigarettes" type="number" min="1" max="100" value="1" required /><em>根</em></div></label><label class="form-field"><span>当时的诱因 <i class="optional">选填</i></span><select id="lapse-trigger"><option value="">暂不填写</option><option>压力大</option><option>饭后习惯</option><option>应酬或社交</option><option>无聊</option><option>别人递烟</option><option>其他</option></select></label><div class="modal-actions"><button class="primary-button" type="submit">记录并继续今天</button><button class="link-button" type="button" data-close>先不记录</button></div></form>`);
     backdrop.querySelector('#lapse-form').addEventListener('submit', (event) => {
       event.preventDefault();
       const now = new Date().toISOString();
@@ -840,8 +891,25 @@
     });
   };
 
+  const showNextGoalDialog = () => {
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">A NEW REWARD</p><h2>开始新目标</h2><p>当前目标会保留在“已完成的目标”中。新目标的金额和进度从 0 开始。</p><label class="form-field"><span>新的奖励内容</span><input id="next-goal-name" type="text" maxlength="40" placeholder="例如：旅行" /></label><label class="form-field"><span>目标金额</span><div class="input-wrap"><input id="next-goal-amount" type="number" min="1" max="100000" step="0.01" inputmode="decimal" placeholder="例如：1000" /><em>元</em></div></label><div class="modal-actions"><button class="primary-button" type="button" data-save-next-goal>开始新目标</button><button class="link-button" type="button" data-close>取消</button></div>`);
+    backdrop.querySelector('[data-save-next-goal]').addEventListener('click', () => {
+      const nameInput = backdrop.querySelector('#next-goal-name');
+      const amountInput = backdrop.querySelector('#next-goal-amount');
+      const name = nameInput.value.trim();
+      const amount = Number(amountInput.value);
+      if (!name) { showFieldError(nameInput, '请填写奖励内容'); return; }
+      if (!amountInput.value.trim() || !Number.isFinite(amount) || amount < 1 || amount > 100000) { showFieldError(amountInput, '目标金额请输入 1 到 100000 元'); return; }
+      state.savingsGoalHistory = [...(state.savingsGoalHistory || []), { name: state.savingsGoalName, amount: state.savingsGoal }];
+      state.savingsGoalStartAmount = Number(smokeFreeSavings()) || 0;
+      state.savingsGoalName = name;
+      state.savingsGoal = amount;
+      save(); closeModal(backdrop); render(); showToast('新目标已开始');
+    });
+  };
+
   const showEstimateDialog = () => {
-    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">YOUR ESTIMATE</p><h2>设置烟价与每包支数</h2><p>按你记录忍住的支数估算省下的钱。</p><label class="form-field"><span>平均每天抽几支</span><div class="input-wrap"><input id="edit-cigs" type="number" min="1" max="100" value="${state.cigarettesPerDay || ''}" placeholder="比如 10" /><em>支 / 天</em></div></label><label class="form-field"><span>每包大约多少钱</span><div class="input-wrap"><input id="edit-price" type="number" min="0.01" max="1000" step="0.01" value="${state.packPrice || ''}" placeholder="比如 20" /><em>元 / 包</em></div></label><label class="form-field"><span>每包有几支</span><div class="input-wrap"><input id="edit-pack-count" type="number" min="1" max="100" step="1" value="${state.packCount || 20}" required /><em>支 / 包</em></div></label><div class="modal-actions"><button class="primary-button" data-save-estimate>保存</button><button class="link-button" data-clear-estimate>清除估算资料</button></div>`);
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">YOUR ESTIMATE</p><h2>设置烟价与每包支数</h2><p>按你记录忍住的支数估算省下的钱</p><label class="form-field"><span>平均每天抽几支</span><div class="input-wrap"><input id="edit-cigs" type="number" min="1" max="100" value="${state.cigarettesPerDay || ''}" placeholder="比如 10" /><em>支 / 天</em></div></label><label class="form-field"><span>每包大约多少钱</span><div class="input-wrap"><input id="edit-price" type="number" min="0.01" max="1000" step="0.01" value="${state.packPrice || ''}" placeholder="比如 20" /><em>元 / 包</em></div></label><label class="form-field"><span>每包有几支</span><div class="input-wrap"><input id="edit-pack-count" type="number" min="1" max="100" step="1" value="${state.packCount || 20}" required /><em>支 / 包</em></div></label><div class="modal-actions"><button class="primary-button" data-save-estimate>保存</button><button class="link-button" data-clear-estimate>清除估算资料</button></div>`);
     backdrop.querySelector('[data-save-estimate]').addEventListener('click', () => {
       const cigsInput = backdrop.querySelector('#edit-cigs');
       const priceInput = backdrop.querySelector('#edit-price');
@@ -862,19 +930,19 @@
   };
 
   const showResetDialog = () => {
-    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">START FRESH</p><h2>要重新开始体验吗？</h2><p>这会清除本机保存的戒烟计划、打卡和记录。</p><div class="modal-actions"><button class="danger-button" data-confirm-reset>清除并重新开始</button><button class="secondary-button" data-close>暂时不要</button></div>`);
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><p class="eyebrow">START FRESH</p><h2>要重新开始体验吗？</h2><p>这会清除本机保存的戒烟计划、打卡和记录</p><div class="modal-actions"><button class="danger-button" data-confirm-reset>清除并重新开始</button><button class="secondary-button" data-close>暂时不要</button></div>`);
     backdrop.querySelector('[data-confirm-reset]').addEventListener('click', () => { localStorage.removeItem(STORAGE_KEY); state = null; closeModal(backdrop); render(); });
   };
 
   const showBackgroundDialog = () => {
-    const selected = BACKGROUNDS[state.pageBackground] ? state.pageBackground : 'blue';
+    const selected = BACKGROUNDS[state.pageBackground] ? state.pageBackground : 'midnight';
     let preview = selected;
     const selectedTone = BACKGROUNDS[selected].tone || 'light';
     const choiceButton = ([key, option]) => `<button type="button" class="background-choice ${selected === key ? 'selected' : ''}" data-background="${key}" aria-pressed="${selected === key}" style="--swatch:${option.color};--swatch-card:${option.soft};--swatch-deep:${option.strong}"><span class="background-swatch" aria-hidden="true"></span><span class="background-choice-copy"><strong>${option.label}</strong><small>${option.description}</small></span><span class="background-check" aria-hidden="true">${selected === key ? '✓' : ''}</span></button>`;
     const options = Object.entries(BACKGROUNDS);
     const lightChoices = options.filter(([, option]) => option.tone !== 'dark').map(choiceButton).join('');
     const darkChoices = options.filter(([, option]) => option.tone === 'dark').map(choiceButton).join('');
-    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><div class="background-picker"><p class="eyebrow">PAGE APPEARANCE</p><h2>选择页面底色</h2><p>点击色卡可立即预览页面效果，确认后保存。</p><div class="palette-tone-switch" role="group" aria-label="配色类别"><button type="button" data-palette-tone="light" aria-pressed="${selectedTone === 'light'}">柔和浅色 · 13 款</button><button type="button" data-palette-tone="dark" aria-pressed="${selectedTone === 'dark'}">沉稳深色 · 5 款</button></div><div data-tone-panel="light" ${selectedTone === 'dark' ? 'hidden' : ''}><h3 class="background-group-title">柔和浅色</h3><div class="background-options" role="group" aria-label="柔和浅色">${lightChoices}</div></div><div data-tone-panel="dark" ${selectedTone === 'light' ? 'hidden' : ''}><h3 class="background-group-title">沉稳深色</h3><div class="background-options" role="group" aria-label="沉稳深色">${darkChoices}</div></div><div class="background-picker-actions"><p class="background-preview-status" role="status">当前使用：${BACKGROUNDS[selected].label}</p><button class="primary-button" type="button" data-confirm-background>确认使用此配色</button><button class="link-button" type="button" data-close>取消</button></div></div>`);
+    const backdrop = modal(`<button class="modal-close" data-close aria-label="关闭">×</button><div class="background-picker"><p class="eyebrow">PAGE APPEARANCE</p><h2>选择页面底色</h2><p>点击色卡可立即预览页面效果，确认后保存</p><div class="palette-tone-switch" role="group" aria-label="配色类别"><button type="button" data-palette-tone="dark" aria-pressed="${selectedTone === 'dark'}">沉稳深色 · 5 款</button><button type="button" data-palette-tone="light" aria-pressed="${selectedTone === 'light'}">柔和浅色 · 10 款</button></div><div data-tone-panel="dark" ${selectedTone === 'light' ? 'hidden' : ''}><h3 class="background-group-title">沉稳深色</h3><div class="background-options" role="group" aria-label="沉稳深色">${darkChoices}</div></div><div data-tone-panel="light" ${selectedTone === 'dark' ? 'hidden' : ''}><h3 class="background-group-title">柔和浅色</h3><div class="background-options" role="group" aria-label="柔和浅色">${lightChoices}</div></div><div class="background-picker-actions"><p class="background-preview-status" role="status">当前使用：${BACKGROUNDS[selected].label}</p><button class="primary-button" type="button" data-confirm-background>确认使用此配色</button><button class="link-button" type="button" data-close>取消</button></div></div>`);
     backdrop.onDismiss = () => applyPageBackground();
     backdrop.querySelectorAll('[data-palette-tone]').forEach((button) => button.addEventListener('click', () => {
       const tone = button.dataset.paletteTone;
@@ -912,7 +980,7 @@
     button.textContent = '正在陪你度过这一刻'; button.disabled = true;
     ring.classList.add('running');
     instruction.textContent = '吸气 4 秒 · 慢慢呼气 6 秒';
-    message.innerHTML = '再喝几口水，或者起身走一走。<br>这阵感觉会慢慢过去。';
+    message.innerHTML = '再喝几口水，或者起身走一走<br>这阵感觉会慢慢过去';
     timerHandle = setInterval(() => {
       secondsLeft -= 1;
       const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
@@ -921,8 +989,8 @@
       instruction.textContent = Math.floor((300 - secondsLeft) / 10) % 2 === 0 ? '慢慢吸气 · 不用着急' : '慢慢呼出去 · 肩膀放松';
       if (secondsLeft <= 0) {
         clearInterval(timerHandle); timerHandle = null;
-        timer.textContent = '完成'; instruction.textContent = '这一波，你陪自己度过了。';
-        message.innerHTML = '辛苦啦。喝口水，感受一下现在的自己。<br>你不需要一次解决所有事。';
+        timer.textContent = '完成'; instruction.textContent = '这一波，你陪自己度过了';
+        message.innerHTML = '辛苦啦。喝口水，感受一下现在的自己<br>你不需要一次解决所有事';
         button.textContent = '记录这次成功'; button.disabled = false;
         button.dataset.action = 'urge-success';
       }

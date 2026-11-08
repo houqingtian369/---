@@ -59,7 +59,7 @@ test('页面配色提供多种搭配，选择后保存并同步背景与卡片�
           }
           if (selector === '[data-close]') return [closeButton];
           if (selector === '[data-palette-tone]') {
-            toneButtons ||= ['light', 'dark'].map((tone) => ({ dataset: { paletteTone: tone }, addEventListener(_type, callback) { this.click = callback; }, setAttribute(name, value) { this[name] = value; } }));
+            toneButtons ||= [...this.innerHTML.matchAll(/data-palette-tone="([^"]+)"/g)].map((match) => ({ dataset: { paletteTone: match[1] }, addEventListener(_type, callback) { this.click = callback; }, setAttribute(name, value) { this[name] = value; } }));
             return toneButtons;
           }
           if (selector === '[data-tone-panel]') {
@@ -79,7 +79,12 @@ test('页面配色提供多种搭配，选择后保存并同步背景与卡片�
   });
   openSettings();
   openPicker();
-  assert.equal((modal.innerHTML.match(/class="background-choice /g) || []).length, 18);
+  assert.equal((modal.innerHTML.match(/class="background-choice /g) || []).length, 15);
+  assert.match(modal.innerHTML, /柔和浅色 · 10 款/);
+  assert.match(modal.innerHTML, /沉稳深色 · 5 款/);
+  assert.ok(modal.innerHTML.indexOf('data-palette-tone="dark"') < modal.innerHTML.indexOf('data-palette-tone="light"'));
+  assert.ok(modal.innerHTML.indexOf('data-tone-panel="dark"') < modal.innerHTML.indexOf('data-tone-panel="light"'));
+  assert.doesNotMatch(modal.innerHTML, /海盐青|嫩芽绿|浅沙米/);
   assert.match(modal.innerHTML, /沉稳深色/);
   assert.match(modal.innerHTML, /data-background="blue" aria-pressed="true"/);
   assert.match(modal.innerHTML, /点击色卡可立即预览页面效果，确认后保存/);
@@ -100,7 +105,7 @@ test('页面配色提供多种搭配，选择后保存并同步背景与卡片�
   assert.equal(modal.removed, true);
   assert.match(app.innerHTML, /当前：燕麦暖 · 背景与卡片同步搭配/);
   openPicker();
-  modal.querySelectorAll('[data-palette-tone]')[1].click();
+  modal.querySelectorAll('[data-palette-tone]').find((button) => button.dataset.paletteTone === 'dark').click();
   assert.equal(modal.querySelectorAll('[data-tone-panel]')[0].hidden, true);
   assert.equal(modal.querySelectorAll('[data-tone-panel]')[1].hidden, false);
   const pine = modal.querySelectorAll('[data-background]').find((button) => button.dataset.background === 'pine');
@@ -116,10 +121,51 @@ test('页面配色提供多种搭配，选择后保存并同步背景与卡片�
   assert.equal(colors['--paper'], '#f3eadc');
   assert.equal(document.documentElement.dataset.themeTone, 'light');
   openPicker();
-  modal.querySelectorAll('[data-palette-tone]')[1].click();
+  modal.querySelectorAll('[data-palette-tone]').find((button) => button.dataset.paletteTone === 'dark').click();
   modal.querySelectorAll('[data-background]').find((button) => button.dataset.background === 'pine').click();
   modal.querySelector('[data-confirm-background]').click();
   assert.equal(saved.pageBackground, 'pine');
   assert.match(app.innerHTML, /当前：深松绿 · 背景与卡片同步搭配/);
   assert.doesNotMatch(app.innerHTML, /id="reminder-toggle"/);
+});
+
+test('已保存但移除的浅色配色会换到相近的现有配色', () => {
+  for (const [oldColor, replacement] of [['sea', 'mint'], ['green', 'sage'], ['sand', 'warm']]) {
+    const start = new Date(Date.now() - 86400000).toISOString();
+    let saved = { currentStartAt: start, createdAt: start, checkinRuleVersion: 2, checkins: [], lapses: [], urgeWins: [], planType: 'quit-date', pageBackground: oldColor };
+    const app = { innerHTML: '', classList: { toggle() {} }, querySelector() { return null; }, querySelectorAll() { return []; } };
+    vm.runInNewContext(source, {
+      window: { HealthMilestones: health, CheckinPeriods: periods, RankProgress: ranks },
+      document: { querySelector(selector) { return selector === '#app' ? app : { classList: { add() {}, remove() {} } }; }, documentElement: { dataset: {}, style: { setProperty() {} } } },
+      localStorage: { getItem() { return JSON.stringify(saved); }, setItem(_key, value) { saved = JSON.parse(value); } },
+      setInterval() { return 1; }, clearInterval() {}, setTimeout() { return 1; }, clearTimeout() {},
+    });
+    assert.equal(saved.pageBackground, replacement);
+  }
+});
+
+test('未选择过配色时默认显示午夜蓝，保留已选择的配色', () => {
+  for (const [pageBackground, expectedPaper, expectedTone] of [
+    [undefined, '#172633', 'dark'],
+    ['blue', '#e7eef8', 'light'],
+  ]) {
+    const start = new Date(Date.now() - 86400000).toISOString();
+    const saved = { currentStartAt: start, createdAt: start, checkinRuleVersion: 2, checkins: [], lapses: [], urgeWins: [], planType: 'quit-date', pageBackground };
+    const colors = {};
+    const root = { dataset: {}, style: { setProperty(name, value) { colors[name] = value; } } };
+    let openSettings;
+    const app = { innerHTML: '', classList: { toggle() {} }, querySelector() { return null; }, querySelectorAll(selector) {
+      return selector === '[data-page]' ? [{ dataset: { page: 'settings' }, addEventListener(_type, callback) { openSettings = callback; } }] : [];
+    } };
+    vm.runInNewContext(source, {
+      window: { HealthMilestones: health, CheckinPeriods: periods, RankProgress: ranks },
+      document: { querySelector(selector) { return selector === '#app' ? app : { classList: { add() {}, remove() {} } }; }, documentElement: root },
+      localStorage: { getItem() { return JSON.stringify(saved); }, setItem() {} },
+      setInterval() { return 1; }, clearInterval() {}, setTimeout() { return 1; }, clearTimeout() {},
+    });
+    assert.equal(colors['--paper'], expectedPaper);
+    assert.equal(root.dataset.themeTone, expectedTone);
+    openSettings();
+    assert.match(app.innerHTML, new RegExp(`当前：${pageBackground ? '晴空蓝' : '午夜蓝'}`));
+  }
 });

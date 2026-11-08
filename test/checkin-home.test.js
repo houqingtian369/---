@@ -44,14 +44,20 @@ const renderHome = (hoursSinceStart, lapses = [], options = {}) => {
     dataset: { action: 'save-goal' },
     addEventListener(_type, callback) { options.clickSaveGoal = () => callback({ currentTarget: saveGoalButton }); },
   };
+  const nextGoalButton = {
+    dataset: { action: 'next-goal' },
+    addEventListener(_type, callback) { options.clickNextGoal = () => callback({ currentTarget: nextGoalButton }); },
+  };
   const app = {
     innerHTML: '',
     classList: { toggle() {} },
     querySelectorAll(selector) {
       if (options.testMakeupClick && selector === '[data-action]') return [makeupButton];
       if (options.testCheckinClick && selector === '[data-action]') return [checkinButton];
-      if (options.testSaveGoal && selector === '[data-action]') return [saveGoalButton];
-      if (options.testGrowth && selector === '[data-page]') return [growthButton];
+      if ((options.testSaveGoal || options.testGoalRenewal) && selector === '[data-action]') return [saveGoalButton];
+      if (options.testNextGoalDialog && selector === '[data-action]') return [nextGoalButton];
+      if (options.testGoalRenewal && selector === '[data-page]') return [growthButton, settingsButton];
+      if ((options.testGrowth || options.testNextGoalDialog) && selector === '[data-page]') return [growthButton];
       if (options.testBuddy && selector === '[data-page]') return [buddyButton];
       if (options.testSettings && selector === '[data-page]') return [settingsButton];
       if (options.testRankSelection && selector === '[data-page]') return [homeButton, growthButton, settingsButton];
@@ -63,8 +69,8 @@ const renderHome = (hoursSinceStart, lapses = [], options = {}) => {
       if (selector === '#makeup-dates') return makeupDates;
       if (selector === '#home-money-ring' && options.ringValues) return { setAttribute(_name, value) { options.ringValues.push(value); } };
       if (selector === '#reminder-toggle' || selector === '#reminder-time') return { addEventListener() {} };
-      if (selector === '#savings-goal-name') return { value: '新的奖励' };
-      if (selector === '#savings-goal') return { value: '500' };
+      if (selector === '#savings-goal-name') return { value: options.goalInputName || '新的奖励' };
+      if (selector === '#savings-goal') return { value: options.goalInputAmount || '500' };
       return null;
     },
   };
@@ -76,24 +82,39 @@ const renderHome = (hoursSinceStart, lapses = [], options = {}) => {
     startTimeNeedsReview: false,
     lapses,
     lastLapseAt: lapses.at(-1)?.at || null,
-    urgeWins: [],
+    urgeWins: options.urgeWins || [],
     cigarettesPerDay: options.cigarettesPerDay || null,
     packPrice: options.packPrice || null,
     packCount: 20,
     planType: options.planType || 'quit-date',
     savingsGoal: options.savingsGoal,
     savingsGoalName: options.savingsGoalName,
+    savingsGoalStartAmount: options.savingsGoalStartAmount,
+    savingsGoalHistory: options.savingsGoalHistory,
     rankRoute: options.rankRoute,
     startMode: options.startMode,
     lastSeenAt: options.lastSeenAt,
     unverifiedGaps: options.unverifiedGaps || [],
     plannedQuitDate: options.plannedQuitDate,
   };
+  const nextGoalName = { value: options.goalInputName || '旅行' };
+  const nextGoalAmount = { value: options.goalInputAmount || '100' };
+  const dialogSave = { addEventListener(_type, callback) { this.click = callback; } };
+  const dialog = { querySelector(selector) { return selector === 'h2' ? { id: '' } : null; }, setAttribute() {}, focus() {} };
+  const backdrop = { innerHTML: '', addEventListener() {}, remove() {}, querySelector(selector) {
+    if (selector === '.modal') return dialog;
+    if (selector === '#next-goal-name') return nextGoalName;
+    if (selector === '#next-goal-amount') return nextGoalAmount;
+    if (selector === '[data-save-next-goal]') return dialogSave;
+    return null;
+  }, querySelectorAll() { return []; } };
   vm.runInNewContext(source, {
     window: { HealthMilestones: health, CheckinPeriods: periods, RankProgress: ranks },
     document: {
       querySelector(selector) { return selector === '#app' ? app : { classList: { add() {}, remove() {} } }; },
       documentElement: { style: { setProperty() {} } },
+      body: { append() { options.dialogHtml = backdrop.innerHTML; } },
+      createElement() { return backdrop; },
     },
     localStorage: { getItem() { return JSON.stringify(state); }, setItem(_key, value) { options.savedState = JSON.parse(value); } },
     Date: options.now === undefined ? Date : class extends Date {
@@ -112,6 +133,7 @@ const renderHome = (hoursSinceStart, lapses = [], options = {}) => {
     options.makeupDatesHidden = makeupDates.hidden;
   }
   if (options.testGrowth) options.goGrowth();
+  if (options.testNextGoalDialog) { options.goGrowth(); options.growthHtmlBefore = app.innerHTML; if (app.innerHTML.includes('data-action="next-goal"')) options.clickNextGoal(); options.clickSaveNextGoal = () => dialogSave.click(); }
   if (options.testBuddy) { options.homeHtml = app.innerHTML; options.goBuddy(); }
   if (options.testSettings) options.goSettings();
   if (options.testRankSelection) {
@@ -126,7 +148,9 @@ const renderHome = (hoursSinceStart, lapses = [], options = {}) => {
     options.settingsAfterSelection = app.innerHTML;
   }
   if (options.testSaveGoal) options.clickSaveGoal();
+  if (options.testGoalRenewal) { options.goSettings(); options.clickSaveGoal(); options.goGrowth(); }
   if (options.testCheckinClick) options.clickCheckin();
+  options.currentHtml = () => app.innerHTML;
   return app.innerHTML;
 };
 
@@ -158,10 +182,20 @@ test('今天页首屏显示当前称号及下一称号所需累计无烟日，�
   assert.match(renderHome(1095 * 24), /已到达最高称号/);
 });
 
-test('称号路线只在设置页单选，今天和成长页同步展示，成长页页头不重复记录吸烟', () => {
+test('称号风格与晋级线路在设置页分别展示，今天和成长页同步选中风格', () => {
   const options = { testRankSelection: true };
   renderHome(181 * 24, [], options);
-  assert.match(options.settingsHtml, /称号路线/);
+  assert.match(options.settingsHtml, /称号风格与晋级线路/);
+  assert.match(options.settingsHtml, /<summary>查看竞技段位的晋级线路<\/summary>/);
+  assert.match(options.settingsHtml, /<summary>查看探索旅程的晋级线路<\/summary>/);
+  assert.equal((options.settingsHtml.match(/class="rank-tier /g) || []).length, 20);
+  assert.equal((options.settingsHtml.match(/class="rank-stage /g) || []).length, 68);
+  assert.doesNotMatch(options.settingsHtml, /<details class="rank-route-details" open/);
+  assert.match(options.settingsHtml, /青铜<\/strong><span><span class="rank-stage ">I · 0 天/);
+  assert.match(options.settingsHtml, /启程者<\/strong><span><span class="rank-stage ">I · 0 天/);
+  assert.match(options.settingsHtml, /class="rank-stage current">IV · 180 天/);
+  assert.match(options.settingsHtml, /巅峰 · 1095 天/);
+  assert.match(options.settingsHtml, /传奇旅人 · 1095 天/);
   assert.match(options.settingsHtml, /name="rankRoute" value="competitive" checked/);
   assert.match(options.settingsHtml, /name="rankRoute" value="journey"/);
   assert.equal(options.savedState.rankRoute, 'journey');
@@ -295,6 +329,63 @@ test('奖励目标达到预估金额后显示鼓励和下一个目标入口，�
   assert.doesNotMatch(reached, /id="goal-complete"[^>]*hidden/);
 });
 
+test('完成的奖励目标换新后从零累计并在下方保留完成记录', () => {
+  const now = Date.parse('2026-11-10T09:00:00Z');
+  const goalAmount = { textContent: '' };
+  const goalFill = { style: {} };
+  const goalTrack = { setAttribute(name, value) { this[name] = value; } };
+  const options = { now, startAt: new Date(now - 48 * 3600000).toISOString(),
+    testGoalRenewal: true, cigarettesPerDay: 20, packPrice: 20,
+    savingsGoal: 20, savingsGoalName: '游戏', goalInputName: '旅行', goalInputAmount: '100',
+    liveNodes: { '#timed-savings-value': { textContent: '' }, '#goal-saved-amount': goalAmount,
+      '#goal-track-fill': goalFill, '#goal-track': goalTrack, '#goal-complete': { hidden: true } } };
+  const html = renderHome(0, [], options);
+  assert.equal(options.savedState.savingsGoalStartAmount, 40);
+  assert.equal(options.savedState.savingsGoalHistory.length, 1);
+  assert.equal(options.savedState.savingsGoalHistory[0].name, '游戏');
+  assert.equal(options.savedState.savingsGoalHistory[0].amount, 20);
+  assert.match(html, /目标奖励：旅行/);
+  assert.match(html, /id="goal-saved-amount">¥0\.000/);
+  assert.match(html, /id="goal-track"[^>]*aria-valuenow="0"/);
+  assert.match(html, /游戏[\s\S]*¥20[\s\S]*已完成/);
+  assert.ok(html.indexOf('目标奖励：旅行') < html.indexOf('已完成的目标'));
+  assert.match(html, /id="goal-complete"[^>]*hidden/);
+  options.now += 24 * 3600000;
+  options.tick();
+  assert.equal(goalAmount.textContent, '¥20.000');
+  assert.equal(goalFill.style.width, '20%');
+  assert.equal(goalTrack['aria-valuenow'], '20');
+});
+
+test('从已完成目标的入口开始新目标时直接归零并保留旧目标', () => {
+  const now = Date.parse('2026-11-10T09:00:00Z');
+  const options = { now, startAt: new Date(now - 48 * 3600000).toISOString(),
+    testNextGoalDialog: true, cigarettesPerDay: 20, packPrice: 20,
+    savingsGoal: 20, savingsGoalName: '游戏', goalInputName: '旅行', goalInputAmount: '100' };
+  renderHome(0, [], options);
+  assert.match(options.growthHtmlBefore, /data-action="next-goal"/);
+  assert.match(options.dialogHtml, /开始新目标/);
+  assert.match(options.dialogHtml, /当前目标会保留在.*已完成的目标/);
+  options.clickSaveNextGoal();
+  assert.equal(options.savedState.savingsGoalStartAmount, 40);
+  assert.equal(options.savedState.savingsGoalHistory[0].name, '游戏');
+  const html = options.currentHtml();
+  assert.match(html, /目标奖励：旅行/);
+  assert.match(html, /id="goal-saved-amount">¥0\.000/);
+  assert.match(html, /id="goal-track"[^>]*aria-valuenow="0"/);
+  assert.match(html, /游戏[\s\S]*已完成/);
+});
+
+test('尚未完成的目标修改时保留已有进度', () => {
+  const now = Date.parse('2026-11-10T09:00:00Z');
+  const options = { now, startAt: new Date(now - 24 * 3600000).toISOString(),
+    testGoalRenewal: true, cigarettesPerDay: 20, packPrice: 20,
+    savingsGoal: 100, savingsGoalName: '游戏', goalInputName: '旅行', goalInputAmount: '200' };
+  const html = renderHome(0, [], options);
+  assert.equal(options.savedState.savingsGoalHistory?.length || 0, 0);
+  assert.match(html, /id="goal-saved-amount">¥20\.000/);
+});
+
 test('超过三天未打开时首页累计暂停，最近三期仍可补卡', () => {
   const day = 86400000;
   const start = Date.parse('2026-11-01T09:00:00Z');
@@ -332,6 +423,39 @@ test('找搭子邀请卡与首页圆环使用同一个累计预估金额', () =>
   options.now += 3600000;
   options.tick();
   assert.equal(amountNode.textContent, '¥42.583');
+});
+
+test('邀请卡显示当前称号、预估戒掉、小红花和戒烟期间吸烟根数', () => {
+  const start = Date.parse('2026-11-01T09:00:00Z');
+  const now = start + 5 * 86400000;
+  const lapses = [{ at: new Date(start + 2 * 86400000 + 3600000).toISOString(), cigarettes: 2 }];
+  const options = { now, startAt: new Date(start).toISOString(), cigarettesPerDay: 20,
+    packPrice: 14, rankRoute: 'journey', urgeWins: [{ cigarettes: 1 }, { cigarettes: 2 }], testBuddy: true };
+  const html = renderHome(0, lapses, options);
+  assert.match(html, /当前称号<\/span><strong id="buddy-rank">启程者 III<\/strong>/);
+  assert.match(html, /<strong id="buddy-avoided">98 根<\/strong><span>预估戒掉<\/span>/);
+  assert.match(html, /<strong id="buddy-flowers">2 朵<\/strong><span>忍住获得的小红花<\/span>/);
+  assert.match(html, /<strong id="buddy-smoked">2 根<\/strong><span>戒烟期间吸烟<\/span>/);
+  assert.ok(html.indexOf('class="invite-extra-stats"') < html.indexOf('class="invite-extra-rank"'));
+});
+
+test('邀请卡停留期间跨过无烟日时同步更新数据和称号', () => {
+  const start = Date.parse('2026-11-01T09:00:00Z');
+  const day = 86400000;
+  const nodes = Object.fromEntries(['#buddy-smoke-free-days', '#buddy-checkins', '#buddy-avoided',
+    '#buddy-flowers', '#buddy-smoked', '#buddy-rank'].map((key) => [key, { textContent: '' }]));
+  const options = { now: start + 3 * day - 500, startAt: new Date(start).toISOString(),
+    cigarettesPerDay: 20, rankRoute: 'journey', urgeWins: [{ cigarettes: 1 }, { cigarettes: 1 }],
+    testBuddy: true, liveNodes: nodes };
+  renderHome(0, [], options);
+  options.now += 1000;
+  options.tick();
+  assert.equal(nodes['#buddy-smoke-free-days'].textContent, '3');
+  assert.equal(nodes['#buddy-checkins'].textContent, '0');
+  assert.equal(nodes['#buddy-avoided'].textContent, '60 根');
+  assert.equal(nodes['#buddy-flowers'].textContent, '2 朵');
+  assert.equal(nodes['#buddy-smoked'].textContent, '0 根');
+  assert.equal(nodes['#buddy-rank'].textContent, '启程者 III');
 });
 
 test('设置页只读展示首次选择的模式与开始时刻', () => {
